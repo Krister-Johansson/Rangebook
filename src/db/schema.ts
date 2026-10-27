@@ -5,6 +5,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   real,
   serial,
   text,
@@ -18,12 +19,34 @@ import {
 const localTs = (name: string) =>
   timestamp(name, { mode: 'string' }).notNull()
 
+// One row per person whose exports are imported (for example each child in a family).
+export const people = pgTable('people', {
+  id: serial().primaryKey(),
+  name: text().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+})
+
+const personId = () =>
+  integer('person_id')
+    .notNull()
+    .references(() => people.id, { onDelete: 'cascade' })
+
+// Each import keeps its own rows. Where imports overlap, rows from the newest
+// import covering a timestamp win (see src/server/dataset.ts), so deleting an
+// import only removes its rows and older data shows through again.
 export const imports = pgTable('imports', {
   id: serial().primaryKey(),
+  personId: personId(),
   fileName: text('file_name').notNull(),
+  // Name from the export's first line, used to warn about uploads to the wrong person.
   patientName: text('patient_name'),
   rangeStart: date('range_start', { mode: 'string' }),
   rangeEnd: date('range_end', { mode: 'string' }),
+  // First and last timestamp across all rows in this import.
+  dataStart: timestamp('data_start', { mode: 'string' }),
+  dataEnd: timestamp('data_end', { mode: 'string' }),
   // Per-file counts: { [kind]: { parsed, inserted } }
   summary: jsonb().$type<ImportSummary>().notNull(),
   createdAt: timestamp('created_at', { withTimezone: true })
@@ -46,11 +69,15 @@ export const cgmReadings = pgTable(
     // Those readings are stored clamped to the sensor limit with this flag set.
     sensorLimit: text('sensor_limit').$type<'low' | 'high'>(),
     serial: text(),
-    importId: integer('import_id').references(() => imports.id, {
-      onDelete: 'set null',
-    }),
+    personId: personId(),
+    importId: integer('import_id')
+      .notNull()
+      .references(() => imports.id, { onDelete: 'cascade' }),
   },
-  (t) => [uniqueIndex('cgm_readings_ts_uq').on(t.ts)],
+  (t) => [
+    uniqueIndex('cgm_readings_import_ts_uq').on(t.importId, t.ts),
+    index('cgm_readings_person_ts_idx').on(t.personId, t.ts),
+  ],
 )
 
 export const bgReadings = pgTable(
@@ -61,11 +88,15 @@ export const bgReadings = pgTable(
     mmol: real().notNull(),
     manual: boolean().notNull().default(true),
     serial: text(),
-    importId: integer('import_id').references(() => imports.id, {
-      onDelete: 'set null',
-    }),
+    personId: personId(),
+    importId: integer('import_id')
+      .notNull()
+      .references(() => imports.id, { onDelete: 'cascade' }),
   },
-  (t) => [uniqueIndex('bg_readings_ts_mmol_uq').on(t.ts, t.mmol)],
+  (t) => [
+    uniqueIndex('bg_readings_import_ts_mmol_uq').on(t.importId, t.ts, t.mmol),
+    index('bg_readings_person_ts_idx').on(t.personId, t.ts),
+  ],
 )
 
 export const boluses = pgTable(
@@ -81,14 +112,16 @@ export const boluses = pgTable(
     initialU: real('initial_u'),
     extendedU: real('extended_u'),
     serial: text(),
-    importId: integer('import_id').references(() => imports.id, {
-      onDelete: 'set null',
-    }),
+    personId: personId(),
+    importId: integer('import_id')
+      .notNull()
+      .references(() => imports.id, { onDelete: 'cascade' }),
   },
   (t) => [
     unique('boluses_dedupe_uq')
-      .on(t.ts, t.insulinType, t.deliveredU, t.carbsG)
+      .on(t.importId, t.ts, t.insulinType, t.deliveredU, t.carbsG)
       .nullsNotDistinct(),
+    index('boluses_person_ts_idx').on(t.personId, t.ts),
   ],
 )
 
@@ -104,15 +137,17 @@ export const basalEvents = pgTable(
     rateUPerH: real('rate_u_per_h'),
     deliveredU: real('delivered_u'),
     serial: text(),
-    importId: integer('import_id').references(() => imports.id, {
-      onDelete: 'set null',
-    }),
+    personId: personId(),
+    importId: integer('import_id')
+      .notNull()
+      .references(() => imports.id, { onDelete: 'cascade' }),
   },
   (t) => [
     // Several segments can start at the same minute (e.g. midnight profile switch).
     unique('basal_events_dedupe_uq')
-      .on(t.ts, t.insulinType, t.durationMin, t.rateUPerH)
+      .on(t.importId, t.ts, t.insulinType, t.durationMin, t.rateUPerH)
       .nullsNotDistinct(),
+    index('basal_events_person_ts_idx').on(t.personId, t.ts),
   ],
 )
 
@@ -125,11 +160,15 @@ export const dailyInsulin = pgTable(
     totalInsulinU: real('total_insulin_u'),
     totalBasalU: real('total_basal_u'),
     serial: text(),
-    importId: integer('import_id').references(() => imports.id, {
-      onDelete: 'set null',
-    }),
+    personId: personId(),
+    importId: integer('import_id')
+      .notNull()
+      .references(() => imports.id, { onDelete: 'cascade' }),
   },
-  (t) => [uniqueIndex('daily_insulin_ts_uq').on(t.ts)],
+  (t) => [
+    uniqueIndex('daily_insulin_import_ts_uq').on(t.importId, t.ts),
+    index('daily_insulin_person_ts_idx').on(t.personId, t.ts),
+  ],
 )
 
 export const alarms = pgTable(
@@ -139,12 +178,14 @@ export const alarms = pgTable(
     ts: localTs('ts'),
     event: text().notNull(),
     serial: text(),
-    importId: integer('import_id').references(() => imports.id, {
-      onDelete: 'set null',
-    }),
+    personId: personId(),
+    importId: integer('import_id')
+      .notNull()
+      .references(() => imports.id, { onDelete: 'cascade' }),
   },
   (t) => [
-    uniqueIndex('alarms_ts_event_uq').on(t.ts, t.event),
+    uniqueIndex('alarms_import_ts_event_uq').on(t.importId, t.ts, t.event),
+    index('alarms_person_ts_idx').on(t.personId, t.ts),
     index('alarms_event_idx').on(t.event),
   ],
 )
@@ -158,28 +199,42 @@ export const manualEntries = pgTable(
     kind: text().notNull(),
     ts: localTs('ts'),
     data: jsonb().$type<Record<string, string>>().notNull(),
-    importId: integer('import_id').references(() => imports.id, {
-      onDelete: 'set null',
-    }),
+    personId: personId(),
+    importId: integer('import_id')
+      .notNull()
+      .references(() => imports.id, { onDelete: 'cascade' }),
   },
-  (t) => [uniqueIndex('manual_entries_kind_ts_data_uq').on(t.kind, t.ts, t.data)],
+  (t) => [
+    uniqueIndex('manual_entries_import_kind_ts_data_uq').on(t.importId, t.kind, t.ts, t.data),
+    index('manual_entries_person_ts_idx').on(t.personId, t.ts),
+  ],
 )
 
-// Single-user app: preferences are key/value rows (goal, sharing, theme).
-export const preferences = pgTable('preferences', {
-  key: text().primaryKey(),
-  value: jsonb().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-})
+// Per-person preferences as key/value rows (goal, sharing).
+export const preferences = pgTable(
+  'preferences',
+  {
+    personId: personId(),
+    key: text().notNull(),
+    value: jsonb().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.personId, t.key] })],
+)
 
 // Questions saved from pattern cards. The text is copied so the list survives
 // when a pattern no longer shows up in newer data.
-export const savedQuestions = pgTable('saved_questions', {
-  patternId: text('pattern_id').primaryKey(),
-  question: text().notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-})
+export const savedQuestions = pgTable(
+  'saved_questions',
+  {
+    personId: personId(),
+    patternId: text('pattern_id').notNull(),
+    question: text().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.personId, t.patternId] })],
+)

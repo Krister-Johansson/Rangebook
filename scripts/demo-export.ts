@@ -3,7 +3,7 @@
 // insulin and a Control-IQ-like controller. It is not a physiological model;
 // it only has to look like an export and contain patterns the rules can find.
 //
-//   pnpm demo:export [--days 90] [--end 2026-01-31] [--seed 7] [--out demo-export.zip]
+//   pnpm demo:export [--days 90] [--end 2026-01-31] [--seed 7] [--name 'Demo Patient'] [--out demo-export.zip]
 
 import { writeFileSync } from 'node:fs'
 import { strToU8, zipSync } from 'fflate'
@@ -14,6 +14,7 @@ for (let i = 2; i < process.argv.length; i += 2) args.set(process.argv[i].replac
 const DAYS = Number(args.get('days') ?? 90)
 const END = args.get('end') ?? new Date().toISOString().slice(0, 10)
 const OUT = args.get('out') ?? 'demo-export.zip'
+const NAME = args.get('name') ?? 'Demo Patient'
 const SERIAL = '0000000'
 const STEPS_PER_DAY = 288
 
@@ -290,7 +291,7 @@ for (let i = 1; i < N; i++) {
 
 // Files.
 const lastTs = ts(LAST)
-const header = `﻿Name:Demo Patient,Date Range:${ts(WARMUP).slice(0, 10)} - ${lastTs.slice(0, 10)}`
+const header = `\uFEFFName:${NAME},Date Range:${ts(WARMUP).slice(0, 10)} - ${lastTs.slice(0, 10)}`
 const file = (columns: string, rows: string[]) => strToU8([header, columns, ...rows.slice().reverse()].join('\n') + '\n')
 
 const daily: string[] = []

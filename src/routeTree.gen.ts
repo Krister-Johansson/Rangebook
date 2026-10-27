@@ -14,6 +14,7 @@ import { Route as DayRouteImport } from './routes/day'
 import { Route as ImportRouteImport } from './routes/import'
 import { Route as MoreRouteImport } from './routes/more'
 import { Route as PatternsRouteImport } from './routes/patterns'
+import { Route as PeopleRouteImport } from './routes/people'
 import { Route as TrendsRouteImport } from './routes/trends'
 
 const IndexRoute = IndexRouteImport.update({
@@ -41,6 +42,11 @@ const PatternsRoute = PatternsRouteImport.update({
   path: '/patterns',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PeopleRoute = PeopleRouteImport.update({
+  id: '/people',
+  path: '/people',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TrendsRoute = TrendsRouteImport.update({
   id: '/trends',
   path: '/trends',
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/import': typeof ImportRoute
   '/more': typeof MoreRoute
   '/patterns': typeof PatternsRoute
+  '/people': typeof PeopleRoute
   '/trends': typeof TrendsRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/import': typeof ImportRoute
   '/more': typeof MoreRoute
   '/patterns': typeof PatternsRoute
+  '/people': typeof PeopleRoute
   '/trends': typeof TrendsRoute
 }
 export interface FileRoutesById {
@@ -70,14 +78,24 @@ export interface FileRoutesById {
   '/import': typeof ImportRoute
   '/more': typeof MoreRoute
   '/patterns': typeof PatternsRoute
+  '/people': typeof PeopleRoute
   '/trends': typeof TrendsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/day' | '/import' | '/more' | '/patterns' | '/trends'
+  fullPaths:
+    '/' | '/day' | '/import' | '/more' | '/patterns' | '/people' | '/trends'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/day' | '/import' | '/more' | '/patterns' | '/trends'
-  id: '__root__' | '/' | '/day' | '/import' | '/more' | '/patterns' | '/trends'
+  to: '/' | '/day' | '/import' | '/more' | '/patterns' | '/people' | '/trends'
+  id:
+    | '__root__'
+    | '/'
+    | '/day'
+    | '/import'
+    | '/more'
+    | '/patterns'
+    | '/people'
+    | '/trends'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -86,6 +104,7 @@ export interface RootRouteChildren {
   ImportRoute: typeof ImportRoute
   MoreRoute: typeof MoreRoute
   PatternsRoute: typeof PatternsRoute
+  PeopleRoute: typeof PeopleRoute
   TrendsRoute: typeof TrendsRoute
 }
 
@@ -126,6 +145,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PatternsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/people': {
+      id: '/people'
+      path: '/people'
+      fullPath: '/people'
+      preLoaderRoute: typeof PeopleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/trends': {
       id: '/trends'
       path: '/trends'
@@ -142,6 +168,7 @@ const rootRouteChildren: RootRouteChildren = {
   ImportRoute: ImportRoute,
   MoreRoute: MoreRoute,
   PatternsRoute: PatternsRoute,
+  PeopleRoute: PeopleRoute,
   TrendsRoute: TrendsRoute,
 }
 export const routeTree = rootRouteImport

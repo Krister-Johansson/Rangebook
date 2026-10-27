@@ -28,7 +28,7 @@ pnpm db:migrate
 pnpm dev
 ```
 
-Open http://localhost:3000/import and drop the export zip. Postgres listens on port 5433 (user, password and database are all `cgm`), set in `.env.local`.
+Open http://localhost:3000/people, add a person, then drop the export zip on http://localhost:3000/import. Postgres listens on port 5433 (user, password and database are all `cgm`), set in `.env.local`.
 
 ### Try it with made-up data
 
@@ -38,11 +38,19 @@ Open http://localhost:3000/import and drop the export zip. Postgres listens on p
 pnpm demo:export
 ```
 
-This writes `demo-export.zip` (90 days ending today). Drop it on the import page. `--days`, `--end YYYY-MM-DD`, `--seed` and `--out` change the defaults.
+This writes `demo-export.zip` (90 days ending today). Drop it on the import page. `--days`, `--end YYYY-MM-DD`, `--seed`, `--name` and `--out` change the defaults. A different `--seed` and `--name` gives a second made-up person.
+
+## People
+
+Every import belongs to a person, so a family with more than one child keeps each child's data apart. Pick the person in the menu at the top of the sidebar (the round initial on a phone); the choice is stored in a cookie and every page, goal, sharing setting and saved question follows it. Add, rename and delete people on the People page. Deleting a person deletes their imports and saved questions.
 
 ## Import
 
-The export zip holds CSV files such as `cgm_data_1.csv`, `bolus_data_1.csv` and `basal_data_1.csv`. The parser in `src/lib/glooko/` reads them from a zip or as loose CSV files. Each table has a unique key, so importing an overlapping period skips rows that are already stored. CGM sentinel values (0.1 for LOW, 111.1 for HIGH) are stored as 2.2 and 22.2 with `sensor_limit` set.
+The export zip holds CSV files such as `cgm_data_1.csv`, `bolus_data_1.csv` and `basal_data_1.csv`. The parser in `src/lib/glooko/` reads them from a zip or as loose CSV files. CGM sentinel values (0.1 for LOW, 111.1 for HIGH) are stored as 2.2 and 22.2 with `sensor_limit` set.
+
+Each import keeps its own rows. Imports can overlap, for example a weekly 90-day export: inside the time span of an import, its rows replace those of any import whose data ends earlier. That also replaces the cut-off last day of an older export with the complete day from a newer one. Deleting an import on the import page removes only its rows, and older imports covering the same days show through again.
+
+The first line of every export holds the patient's name. Rangebook stores it with the import and warns before storing an export whose name does not match the person's earlier exports, or matches another person.
 
 Pump timestamps are local wall-clock time without a zone and are stored as `timestamp without time zone`.
 
@@ -66,12 +74,15 @@ For Claude Desktop, add this to `~/Library/Application Support/Claude/claude_des
 }
 ```
 
-Replace `/path/to/rangebook` with the folder you cloned into. If Claude Desktop cannot find `pnpm`, use the full path from `which pnpm` as `command`.
+Replace `/path/to/rangebook` with the folder you cloned into. With more than one person stored, every tool takes a `person` argument (a name or id from `list_people`). To fix the server to one person, add `"RANGEBOOK_PERSON": "Name"` to `env`.
+
+If Claude Desktop cannot find `pnpm`, use the full path from `which pnpm` as `command`.
 
 Tools:
 
 | Tool | What it returns |
 | --- | --- |
+| `list_people` | People with stored data and their data range |
 | `get_overview` | Data range, targets, whole-period and last-14-day summaries, what the export lacks |
 | `get_period_summary`, `compare_periods` | Consensus metrics for one period, or two periods and the change |
 | `get_hourly_profile`, `get_week_map` | Typical day by hour, weekday by hour shares |

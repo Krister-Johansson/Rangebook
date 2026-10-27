@@ -12,7 +12,7 @@ import {
   registerAppTool,
 } from '@modelcontextprotocol/ext-apps/server'
 import type { McpServer } from '@modelcontextprotocol/server'
-import { asc } from 'drizzle-orm'
+import { asc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '#/db'
@@ -20,7 +20,7 @@ import { savedQuestions } from '#/db/schema'
 import { dayDetail } from '#/lib/glucose/analysis'
 import { addDays } from '#/lib/glucose/core'
 import { clampRange, patterns, profile, weekSummary } from './data'
-import { readOnly, requireData } from './util'
+import { personArg, readOnly, requireData, resolvePerson } from './util'
 
 const VIEW_URI = 'ui://rangebook/view.html'
 const VIEW_FILE = path.resolve(import.meta.dirname, '../../mcp-app/dist/view.html')
@@ -57,13 +57,15 @@ export function registerAppViews(server: McpServer) {
       title: 'Show this week',
       description:
         'Shows time in ranges for the last 7 days next to the 7 days before, with average, GMI, CV, wins and goals. Renders a view in hosts with MCP Apps support.',
+      inputSchema: z.object(personArg),
       annotations: readOnly,
       _meta: ui,
     },
-    async () => {
-      const data = weekSummary(await requireData())
+    async ({ person }) => {
+      const data = weekSummary(await requireData(person))
       return view(JSON.stringify({ this_week: data.this_week, last_week: data.last_week, wins: data.wins }), {
         view: 'week',
+        person: (await resolvePerson(person)).name,
         ...data,
       })
     },
@@ -77,16 +79,17 @@ export function registerAppViews(server: McpServer) {
       description:
         'Shows the typical day chart (median and percentile bands by hour, target 3.9 to 10.0) for the last 90 days. Renders a view in hosts with MCP Apps support.',
       inputSchema: z.object({
+        ...personArg,
         day_type: z.enum(['all', 'school', 'weekend']).default('all'),
         days: z.number().int().min(14).max(120).default(90),
       }),
       annotations: readOnly,
       _meta: ui,
     },
-    async ({ day_type, days }) => {
-      const ds = await requireData()
+    async ({ person, day_type, days }) => {
+      const ds = await requireData(person)
       const data = profile(ds, clampRange(ds, undefined, undefined, days), day_type)
-      return view(JSON.stringify(data), { view: 'agp', ...data })
+      return view(JSON.stringify(data), { view: 'agp', person: (await resolvePerson(person)).name, ...data })
     },
   )
 
@@ -97,19 +100,22 @@ export function registerAppViews(server: McpServer) {
       title: 'Show patterns',
       description:
         'Shows the pattern cards with evidence, charts and questions for the care team. In hosts with MCP Apps support, the user can save questions for clinic from the view.',
-      inputSchema: z.object({ days: z.number().int().min(14).max(120).default(90) }),
+      inputSchema: z.object({ ...personArg, days: z.number().int().min(14).max(120).default(90) }),
       annotations: readOnly,
       _meta: ui,
     },
-    async ({ days }) => {
-      const data = patterns(await requireData(), days)
+    async ({ person, days }) => {
+      const p = await resolvePerson(person)
+      const data = patterns(await requireData(person), days)
       const saved = await db
         .select({ id: savedQuestions.patternId })
         .from(savedQuestions)
+        .where(eq(savedQuestions.personId, p.id))
         .orderBy(asc(savedQuestions.createdAt))
       const forModel = { ...data, patterns: data.patterns.map(({ chart: _c, ...p }) => p) }
       return view(JSON.stringify(forModel), {
         view: 'patterns',
+        person: (await resolvePerson(person)).name,
         ...data,
         saved_ids: saved.map((s) => s.id),
       })
@@ -124,6 +130,7 @@ export function registerAppViews(server: McpServer) {
       description:
         'Shows one day: glucose curve with the target range, boluses, pump stops and alarms. Renders a view in hosts with MCP Apps support.',
       inputSchema: z.object({
+        ...personArg,
         date: z
           .string()
           .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -133,8 +140,8 @@ export function registerAppViews(server: McpServer) {
       annotations: readOnly,
       _meta: ui,
     },
-    async ({ date }) => {
-      const ds = await requireData()
+    async ({ person, date }) => {
+      const ds = await requireData(person)
       const d = date && date >= ds.firstDay && date <= ds.lastDay ? date : ds.lastDay
       const detail = dayDetail(ds, d)
       const text = JSON.stringify({
@@ -145,7 +152,7 @@ export function registerAppViews(server: McpServer) {
         previous_day: detail.prev ?? null,
         next_day: detail.next && detail.next <= ds.lastDay ? detail.next : null,
       })
-      return view(text, { view: 'day', detail, first_day: ds.firstDay, last_day: ds.lastDay, week_start: addDays(ds.lastDay, -6) })
+      return view(text, { view: 'day', person: (await resolvePerson(person)).name, detail, first_day: ds.firstDay, last_day: ds.lastDay, week_start: addDays(ds.lastDay, -6) })
     },
   )
 }

@@ -9,7 +9,7 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 import { AppShell } from '#/components/app-shell'
 import { Toaster } from '#/components/ui/sonner'
 import { TooltipProvider } from '#/components/ui/tooltip'
-import { dataRangeQuery, patternsQuery } from '#/lib/queries'
+import { dataRangeQuery, patternsQuery, peopleQuery } from '#/lib/queries'
 import { themeBootScript } from '#/lib/ui-store'
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 
@@ -31,10 +31,11 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     links: [{ rel: 'stylesheet', href: appCss }],
     scripts: [{ children: themeBootScript }],
   }),
-  // The sidebar shows the pattern count and last reading on every page, so
-  // both are loaded here to keep server and client renders identical.
+  // The sidebar shows the person, pattern count and last reading on every
+  // page, so they are loaded here to keep server and client renders identical.
   loader: ({ context }) =>
     Promise.all([
+      context.queryClient.ensureQueryData(peopleQuery),
       context.queryClient.ensureQueryData(patternsQuery),
       context.queryClient.ensureQueryData(dataRangeQuery),
     ]),

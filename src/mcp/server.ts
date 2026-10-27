@@ -4,14 +4,15 @@
 
 import { McpServer } from '@modelcontextprotocol/server'
 import { StdioServerTransport } from '@modelcontextprotocol/server/stdio'
-import { asc } from 'drizzle-orm'
+import { asc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '#/db'
 import { savedQuestions } from '#/db/schema'
+import { listPeopleRows } from '#/server/people-store'
 import { MEAL_WINDOWS } from '#/lib/glucose/meals'
 import { registerAppViews } from './apps'
-import { json, readOnly, requireData } from './util'
+import { json, personArg, readOnly, requireData, resolvePerson } from './util'
 import {
   clampRange,
   comparePeriods,
@@ -46,14 +47,26 @@ export function createServer() {
   )
 
   server.registerTool(
+    'list_people',
+    {
+      title: 'People',
+      description:
+        'People whose data is stored, with their data range. When there is more than one, pass person to every other tool and keep each answer about one person.',
+      annotations: readOnly,
+    },
+    async () => json(await listPeopleRows()),
+  )
+
+  server.registerTool(
     'get_overview',
     {
       title: 'Data overview',
       description:
         'Data range, last reading, consensus targets, whole-period and last-14-day summaries, and what the export does not contain. Call this first.',
+      inputSchema: z.object(personArg),
       annotations: readOnly,
     },
-    async () => json(overview(await requireData())),
+    async ({ person }) => json(overview(await requireData(person))),
   )
 
   server.registerTool(
@@ -62,11 +75,11 @@ export function createServer() {
       title: 'Period summary',
       description:
         'Consensus CGM metrics for a period: time in each range, mean, GMI, CV, sensor wear, low episodes, carb boluses and which targets are met.',
-      inputSchema: z.object(rangeArgs),
+      inputSchema: z.object({ ...rangeArgs, ...personArg }),
       annotations: readOnly,
     },
-    async ({ from, to, days: n }) => {
-      const ds = await requireData()
+    async ({ person, from, to, days: n }) => {
+      const ds = await requireData(person)
       const r = clampRange(ds, from, to, n)
       return json(comparePeriods(ds, r, r).a)
     },
@@ -78,11 +91,11 @@ export function createServer() {
       title: 'Compare two periods',
       description:
         'Summaries of period A and period B plus the change (A minus B). Use for "this week vs last week" style questions. Periods of 10 days or more compare more reliably.',
-      inputSchema: z.object({ a_from: date, a_to: date, b_from: date, b_to: date }),
+      inputSchema: z.object({ ...personArg, a_from: date, a_to: date, b_from: date, b_to: date }),
       annotations: readOnly,
     },
-    async ({ a_from, a_to, b_from, b_to }) => {
-      const ds = await requireData()
+    async ({ person, a_from, a_to, b_from, b_to }) => {
+      const ds = await requireData(person)
       return json(
         comparePeriods(ds, clampRange(ds, a_from, a_to), clampRange(ds, b_from, b_to)),
       )
@@ -96,13 +109,14 @@ export function createServer() {
       description:
         'AGP-style profile: for each hour, the 5/25/50/75/95th percentiles and the share of readings below 3.9, below 3.0, above 10.0 and above 13.9.',
       inputSchema: z.object({
+        ...personArg,
         ...rangeArgs,
         day_type: z.enum(['all', 'school', 'weekend']).default('all').describe('school = Monday to Friday'),
       }),
       annotations: readOnly,
     },
-    async ({ from, to, days: n, day_type }) => {
-      const ds = await requireData()
+    async ({ person, from, to, days: n, day_type }) => {
+      const ds = await requireData(person)
       return json(profile(ds, clampRange(ds, from, to, n ?? 90), day_type))
     },
   )
@@ -112,11 +126,11 @@ export function createServer() {
     {
       title: 'Weekday by hour map',
       description: 'For each weekday and hour: readings and the share below 3.9, above 10.0 and above 13.9.',
-      inputSchema: z.object(rangeArgs),
+      inputSchema: z.object({ ...rangeArgs, ...personArg }),
       annotations: readOnly,
     },
-    async ({ from, to, days: n }) => {
-      const ds = await requireData()
+    async ({ person, from, to, days: n }) => {
+      const ds = await requireData(person)
       return json(weekMap(ds, clampRange(ds, from, to, n ?? 90)))
     },
   )
@@ -128,11 +142,12 @@ export function createServer() {
       description:
         'Rule-based findings (lows after meals, night lows, highs after pump stops, above-range windows, weekend nights, meal bolus routine) with evidence counts, strength 1 to 3, setting areas and a question for the care team. Lows are listed first.',
       inputSchema: z.object({
+        ...personArg,
         days: z.number().int().min(14).max(120).default(90).describe('How many days back from the last reading'),
       }),
       annotations: readOnly,
     },
-    async ({ days: n }) => json(patterns(await requireData(), n)),
+    async ({ person, days: n }) => json(patterns(await requireData(person), n)),
   )
 
   server.registerTool(
@@ -142,14 +157,15 @@ export function createServer() {
       description:
         'For boluses with carbs: glucose at the bolus, change at 2 hours, peak, lows within 4 hours and automatic corrections within 3 hours, summarised per meal window. Set include_each for one row per bolus.',
       inputSchema: z.object({
+        ...personArg,
         ...rangeArgs,
         meal: z.enum(MEAL_WINDOWS.map((m) => m.id) as [string, ...string[]]).optional(),
         include_each: z.boolean().default(false),
       }),
       annotations: readOnly,
     },
-    async ({ from, to, days: n, meal, include_each }) => {
-      const ds = await requireData()
+    async ({ person, from, to, days: n, meal, include_each }) => {
+      const ds = await requireData(person)
       return json(meals(ds, clampRange(ds, from, to, n ?? 30), meal as never, include_each))
     },
   )
@@ -159,11 +175,11 @@ export function createServer() {
     {
       title: 'List days',
       description: 'One row per day: sensor wear, time in range, below and above range, mean, low episodes and carb boluses.',
-      inputSchema: z.object(rangeArgs),
+      inputSchema: z.object({ ...rangeArgs, ...personArg }),
       annotations: readOnly,
     },
-    async ({ from, to, days: n }) => {
-      const ds = await requireData()
+    async ({ person, from, to, days: n }) => {
+      const ds = await requireData(person)
       return json(days(ds, clampRange(ds, from, to, n ?? 14)))
     },
   )
@@ -174,11 +190,11 @@ export function createServer() {
       title: 'One day in detail',
       description:
         'Glucose every 15 minutes, boluses (carb, manual, estimated automatic), pump stops, alarms, sensor gaps and notes for one date.',
-      inputSchema: z.object({ date: date.optional().describe('Defaults to the last day with data') }),
+      inputSchema: z.object({ ...personArg, date: date.optional().describe('Defaults to the last day with data') }),
       annotations: readOnly,
     },
-    async ({ date: d }) => {
-      const ds = await requireData()
+    async ({ person, date: d }) => {
+      const ds = await requireData(person)
       const target = d && d >= ds.firstDay && d <= ds.lastDay ? d : ds.lastDay
       return json(day(ds, target))
     },
@@ -191,13 +207,14 @@ export function createServer() {
       description:
         'Lows (15+ min below 3.9), very lows (below 3.0), runs at the sensor high limit (22.2) or pump stops (15+ min) in a period, with start, end and duration.',
       inputSchema: z.object({
+        ...personArg,
         ...rangeArgs,
         type: z.enum(['low', 'very_low', 'sensor_high', 'pump_stop']),
       }),
       annotations: readOnly,
     },
-    async ({ from, to, days: n, type }) => {
-      const ds = await requireData()
+    async ({ person, from, to, days: n, type }) => {
+      const ds = await requireData(person)
       return json(events(ds, clampRange(ds, from, to, n ?? 14), type))
     },
   )
@@ -207,11 +224,11 @@ export function createServer() {
     {
       title: 'System check',
       description: 'Sensor wear, carbs entered per day, share of automatic corrections, pump stops and what is missing from the export.',
-      inputSchema: z.object(rangeArgs),
+      inputSchema: z.object({ ...rangeArgs, ...personArg }),
       annotations: readOnly,
     },
-    async ({ from, to, days: n }) => {
-      const ds = await requireData()
+    async ({ person, from, to, days: n }) => {
+      const ds = await requireData(person)
       return json(systemCheckData(ds, clampRange(ds, from, to, n ?? 14)))
     },
   )
@@ -236,9 +253,19 @@ export function createServer() {
     {
       title: 'Saved clinic questions',
       description: 'Questions saved for the next care team visit, from the dashboard or from this chat.',
+      inputSchema: z.object(personArg),
       annotations: readOnly,
     },
-    async () => json(await db.select().from(savedQuestions).orderBy(asc(savedQuestions.createdAt))),
+    async ({ person }) => {
+      const p = await resolvePerson(person)
+      return json(
+        await db
+          .select({ pattern_id: savedQuestions.patternId, question: savedQuestions.question, created_at: savedQuestions.createdAt })
+          .from(savedQuestions)
+          .where(eq(savedQuestions.personId, p.id))
+          .orderBy(asc(savedQuestions.createdAt)),
+      )
+    },
   )
 
   server.registerTool(
@@ -248,15 +275,17 @@ export function createServer() {
       description:
         'Adds a question to the clinic list shown on the Patterns page. Only call this when the user asks to save it. The question must not contain doses or setting values.',
       inputSchema: z.object({
+        ...personArg,
         question: z.string().min(10).max(500),
         pattern_id: z.string().optional().describe('Pattern id from get_patterns, if the question belongs to one'),
       }),
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
-    async ({ question, pattern_id }) => {
+    async ({ person, question, pattern_id }) => {
+      const p = await resolvePerson(person)
       const patternId = pattern_id ?? `chat-${Date.now()}`
-      await db.insert(savedQuestions).values({ patternId, question }).onConflictDoNothing()
-      return json({ saved: true, pattern_id: patternId })
+      await db.insert(savedQuestions).values({ personId: p.id, patternId, question }).onConflictDoNothing()
+      return json({ saved: true, person: p.name, pattern_id: patternId })
     },
   )
 

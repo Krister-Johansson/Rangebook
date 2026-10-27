@@ -12,11 +12,18 @@ import {
   getSystemCheck,
 } from '#/server/analysis'
 import { getDataOverview, listImports } from '#/server/imports'
+import { getPeople } from '#/server/people'
 import { getPrefs } from '#/server/preferences'
 
 // Data only changes on import, so analysis results stay fresh until the import
-// mutation invalidates the 'glucose' key.
+// mutation invalidates the 'glucose' key. None of the keys hold a person id:
+// switching person (src/lib/use-switch-person.ts) clears the whole cache.
 const staleTime = Infinity
+
+export const peopleQuery = queryOptions({
+  queryKey: ['people'],
+  queryFn: () => getPeople(),
+})
 
 export const importsQuery = queryOptions({
   queryKey: ['imports'],

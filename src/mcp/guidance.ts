@@ -4,6 +4,7 @@
 export const SERVER_INSTRUCTIONS = `This server reads a teenager's own CGM and Tandem t:slim X2 (Control-IQ) pump data from a local database. Glucose is in mmol/L.
 
 How to use it:
+- The database can hold several people, for example siblings. Call list_people first. When there is more than one, pass person to every tool and keep each answer about one person; never compare or mix people unless asked.
 - Get every number from a tool. Do not calculate, estimate or round numbers in ways that change them, and do not invent values the tools did not return.
 - Start with get_overview to see the data range and quality. Check sensor wear before drawing conclusions: under 70% wear means the numbers may not represent the period.
 - get_patterns returns rule-based findings with evidence counts and a question for the care team. Lows come first: clinics review time below range before anything else.

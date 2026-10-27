@@ -10,11 +10,13 @@ import {
   Moon,
   Sun,
   Upload,
+  UserRound,
   Users,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { BandPatternDefs } from '#/components/glucose/band'
+import { PersonSwitcher } from '#/components/person-switcher'
 import { Button } from '#/components/ui/button'
 import {
   Sidebar,
@@ -51,6 +53,7 @@ const TITLES: Record<string, string> = {
   '/day': 'Day',
   '/more': 'More',
   '/import': 'Import data',
+  '/people': 'People',
 }
 
 function AppSidebar() {
@@ -65,6 +68,7 @@ function AppSidebar() {
           <Activity className="size-5" />
           Rangebook
         </Link>
+        <PersonSwitcher />
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
@@ -96,6 +100,14 @@ function AppSidebar() {
                   <Link to="/more">
                     <Users />
                     Sharing and system
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === '/people'}>
+                  <Link to="/people">
+                    <UserRound />
+                    People
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -146,7 +158,8 @@ function TabBar() {
       className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t bg-background/95 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
     >
       {NAV.map((n) => {
-        const active = pathname === n.to || (n.to === '/more' && pathname === '/import')
+        const active =
+          pathname === n.to || (n.to === '/more' && (pathname === '/import' || pathname === '/people'))
         return (
           <Link
             key={n.to}
@@ -179,7 +192,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground md:hidden">
               <Activity className="size-4" />
             </span>
-            <div className="min-w-0 flex-1 font-semibold">{TITLES[pathname] ?? 'Glucose'}</div>
+            <div className="min-w-0 flex-1 font-semibold">{TITLES[pathname] ?? 'Rangebook'}</div>
+            <div className="md:hidden">
+              <PersonSwitcher compact />
+            </div>
             <ThemeButton />
             <Button variant="ghost" size="icon" asChild aria-label="Import data">
               <Link to="/import">
