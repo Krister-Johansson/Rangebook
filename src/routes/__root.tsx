@@ -9,7 +9,7 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 import { AppShell } from '#/components/app-shell'
 import { Toaster } from '#/components/ui/sonner'
 import { TooltipProvider } from '#/components/ui/tooltip'
-import { dataRangeQuery, patternsQuery, peopleQuery, prefsQuery, progressQuery } from '#/lib/queries'
+import { chatStatusQuery, dataRangeQuery, patternsQuery, peopleQuery, prefsQuery, progressQuery } from '#/lib/queries'
 import { THEME_COLORS, themeBootScript } from '#/lib/ui-store'
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 
@@ -51,6 +51,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       context.queryClient.ensureQueryData(dataRangeQuery),
       context.queryClient.ensureQueryData(progressQuery),
       context.queryClient.ensureQueryData(prefsQuery),
+      context.queryClient.ensureQueryData(chatStatusQuery),
     ]),
   shellComponent: RootDocument,
 })

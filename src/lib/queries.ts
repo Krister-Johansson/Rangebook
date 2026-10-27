@@ -13,7 +13,7 @@ import {
 } from '#/server/analysis'
 import { getDataOverview, listImports } from '#/server/imports'
 import { getChangeComparison, getSettingsTimeline } from '#/server/changes'
-import { getChat, listChats } from '#/server/chats'
+import { getChat, getChatStatus, listChats } from '#/server/chats'
 import { getActivityComparison, listLifeLog } from '#/server/life-log'
 import { getPeople } from '#/server/people'
 import { getProgress } from '#/server/progress'
@@ -132,6 +132,13 @@ export const activityComparisonQuery = (id: number, leaveOutNotNormal: boolean) 
   })
 
 // In-app chat. Lists change when a thread is saved, renamed or deleted.
+// The status only changes when the server restarts with a new .env.local.
+export const chatStatusQuery = queryOptions({
+  queryKey: ['chat-status'],
+  queryFn: () => getChatStatus(),
+  staleTime: Infinity,
+})
+
 export const chatsQuery = queryOptions({
   queryKey: ['chats'],
   queryFn: () => listChats(),

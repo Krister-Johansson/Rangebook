@@ -54,6 +54,22 @@ The first line of every export holds the patient's name. Rangebook stores it wit
 
 Pump timestamps are local wall-clock time without a zone and are stored as `timestamp without time zone`.
 
+## In-app chat (optional)
+
+The chat at `/ask` answers questions about the person selected in the app. It runs on TanStack AI through OpenRouter and gets the same tools as the MCP server below: the app does the calculations and the model explains them. It follows the same rules: numbers only from tools, lows first, no doses, setting values or directions, and the care plan for anything happening right now.
+
+The chat is off until you add an OpenRouter key. Everything else works without it, and the chat pages show how to turn it on:
+
+1. Create a key at https://openrouter.ai/keys. Each question costs a little, paid to OpenRouter.
+2. Add `OPENROUTER_API_KEY="sk-or-..."` to `.env.local`.
+3. Restart `pnpm dev`.
+
+Pick the model and whether the chat may read single days in Ask settings (`/more/chat`). Your question and the numbers the tools return are sent through OpenRouter to the model's company; each request asks for providers that do not store or train on data. The export name is never sent, and chats are stored only in the local database.
+
+To try the screens without a key or credits, start the dev server with `RANGEBOOK_FAKE_CHAT=1`. A scripted model then calls the real tools on the local database and nothing leaves the computer.
+
+Tests: `pnpm test` runs without network, database or key. `pnpm test:live` calls OpenRouter with made-up data and spends a little credit.
+
 ## Ask Claude about the data (MCP)
 
 `src/mcp/` is a local MCP server over stdio. It reads the same Postgres database and runs the same analysis code as the dashboard, so Claude gets the same numbers. It needs Postgres running and at least one import; the web app does not have to run.

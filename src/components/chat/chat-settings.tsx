@@ -16,7 +16,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '#/components/ui/sheet'
-import { chatsQuery, peopleQuery, prefsQuery } from '#/lib/queries'
+import { chatStatusQuery, chatsQuery, peopleQuery, prefsQuery } from '#/lib/queries'
 import { cn } from '#/lib/utils'
 import { deleteAllChats } from '#/server/chats'
 import { CHAT_MODELS, DEFAULT_CHAT_MODEL } from '#/server/chat/prompt'
@@ -24,6 +24,7 @@ import { setPref } from '#/server/preferences'
 import type { Prefs } from '#/server/preferences'
 
 import { modelName } from './text'
+import { ChatOffNotice } from './chat-off'
 
 function PrivacyItem({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
@@ -44,6 +45,7 @@ export function ChatSettings() {
   const { data: prefs } = useSuspenseQuery(prefsQuery)
   const { data: people } = useSuspenseQuery(peopleQuery)
   const { data: chats } = useQuery(chatsQuery)
+  const { data: status } = useQuery(chatStatusQuery)
   const [confirm, setConfirm] = useState(false)
   const name = people.people.find((p) => p.id === people.activeId)?.name ?? 'this person'
   const count = chats?.length ?? 0
@@ -83,6 +85,7 @@ export function ChatSettings() {
         title="Ask settings"
         sub="The chat uses the same lookups as the rest of the app. The app does the math, the model explains it."
       />
+      {status && !status.enabled ? <ChatOffNotice /> : null}
       <div className="grid gap-4 md:grid-cols-2 md:items-start">
         <div className="flex flex-col gap-4">
           <SectionCard title="Your data and privacy" icon={ShieldCheck}>

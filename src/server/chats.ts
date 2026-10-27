@@ -5,11 +5,15 @@ import { z } from 'zod'
 import { db } from '#/db'
 import { chatThreads } from '#/db/schema'
 import { activePersonId, requirePersonId } from './active-person'
+import { chatStatusFrom } from './chat/status'
 
 // Chat threads of the person being viewed. Every call checks the person, so a
 // thread id from another person's chat never opens here.
 
 const threadId = z.string().min(8).max(100)
+
+/** Whether the chat is on (an OpenRouter key is set, or fake mode). */
+export const getChatStatus = createServerFn({ method: 'GET' }).handler(() => chatStatusFrom(process.env))
 
 export interface ChatListItem {
   id: string

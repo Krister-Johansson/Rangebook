@@ -16,6 +16,7 @@ import {
 import type { ReactNode } from 'react'
 
 import { SidebarChats } from '#/components/chat/chat-history'
+import { ChatOffRow } from '#/components/chat/chat-off'
 import { CompanionSvg } from '#/components/companion/companion-svg'
 import { BandPatternDefs } from '#/components/glucose/band'
 import { PersonSwitcher } from '#/components/person-switcher'
@@ -36,7 +37,7 @@ import {
   SidebarProvider,
 } from '#/components/ui/sidebar'
 import { shortDate } from '#/lib/glucose/format'
-import { dataRangeQuery, patternsQuery, peopleQuery, prefsQuery, progressQuery } from '#/lib/queries'
+import { chatStatusQuery, dataRangeQuery, patternsQuery, peopleQuery, prefsQuery, progressQuery } from '#/lib/queries'
 import { setTheme } from '#/lib/ui-store'
 import { cn } from '#/lib/utils'
 
@@ -110,6 +111,7 @@ function AppSidebar() {
   const { data: patterns } = useQuery(patternsQuery)
   const { data: range } = useQuery(dataRangeQuery)
   const { data: progress } = useQuery(progressQuery)
+  const { data: chatStatus } = useQuery(chatStatusQuery)
   const { data: people } = useQuery(peopleQuery)
   const person = people?.people.find((p) => p.id === people.activeId)
 
@@ -188,9 +190,7 @@ function AppSidebar() {
         {person ? (
           <SidebarGroup>
             <SidebarGroupLabel>Ask about {person.name}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarChats />
-            </SidebarGroupContent>
+            <SidebarGroupContent>{chatStatus?.enabled === false ? <ChatOffRow /> : <SidebarChats />}</SidebarGroupContent>
           </SidebarGroup>
         ) : null}
       </SidebarContent>

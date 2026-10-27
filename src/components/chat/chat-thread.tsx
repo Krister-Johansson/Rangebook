@@ -15,12 +15,13 @@ import {
   DropdownMenuTrigger,
 } from '#/components/ui/dropdown-menu'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '#/components/ui/sheet'
-import { chatQuery, chatsQuery, peopleQuery, prefsQuery } from '#/lib/queries'
+import { chatQuery, chatStatusQuery, chatsQuery, peopleQuery, prefsQuery } from '#/lib/queries'
 import { saveChat } from '#/server/chats'
 import { CHAT_MODELS, DEFAULT_CHAT_MODEL } from '#/server/chat/prompt'
 
 import { useChatDialogs } from './chat-dialogs'
 import { SheetChats } from './chat-history'
+import { ChatOffNotice } from './chat-off'
 import { Composer } from './composer'
 import { EmptyChat } from './empty-chat'
 import { AssistantMessage, Thinking, UserMessage } from './messages'
@@ -44,6 +45,7 @@ function parseMessages(json: string): UIMessage[] {
 export function ChatPage({ threadId }: { threadId: string }) {
   const { data: chat } = useSuspenseQuery(chatQuery(threadId))
   const { data: people } = useSuspenseQuery(peopleQuery)
+  const { data: status } = useSuspenseQuery(chatStatusQuery)
   const navigate = useNavigate()
   const person = people.people.find((p) => p.id === people.activeId)
 
@@ -67,6 +69,10 @@ export function ChatPage({ threadId }: { threadId: string }) {
         </Button>
       </div>
     )
+  }
+
+  if (!status.enabled) {
+    return <ChatOffNotice className="mx-auto mt-6 w-full max-w-xl" />
   }
 
   return (
