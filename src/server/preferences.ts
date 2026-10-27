@@ -4,6 +4,7 @@ import { z } from 'zod'
 
 import { db } from '#/db'
 import { preferences, savedQuestions } from '#/db/schema'
+import { DOSE_VALUE_MESSAGE, hasDoseValue } from '#/lib/dose-guard'
 import { activePersonId, requirePersonId } from './active-person'
 
 export const SHARE_KEYS = ['home', 'typical', 'map', 'patterns', 'days', 'progress'] as const
@@ -27,9 +28,28 @@ export const prefsSchema = z.object({
     .default({ name: 'Pip', color: 'sky' }),
   // Leave days tagged as not normal out of patterns and comparisons.
   excludeNotNormal: z.boolean().default(false),
+  // In-app chat: the OpenRouter model, and whether it may read single days.
+  chatModel: z.string().default('anthropic/claude-sonnet-5.5'),
+  chatDayDetail: z.boolean().default(true),
 })
 
 export type Prefs = z.infer<typeof prefsSchema>
+
+/**
+ * What setPref accepts: the same fields with no defaults, so saving one
+ * setting never writes defaults over the person's other settings. (In Zod 4,
+ * `.partial()` keeps field defaults, so it cannot be used here.)
+ */
+export const prefsUpdateSchema = z
+  .object({
+    goalId: z.string(),
+    sharing: z.object(Object.fromEntries(SHARE_KEYS.map((k) => [k, z.boolean()])) as Record<(typeof SHARE_KEYS)[number], z.ZodBoolean>),
+    pet: z.object({ name: z.string().max(24), color: z.string() }),
+    excludeNotNormal: z.boolean(),
+    chatModel: z.string(),
+    chatDayDetail: z.boolean(),
+  })
+  .partial()
 
 export const getPrefs = createServerFn({ method: 'GET' }).handler(async () => {
   const personId = await activePersonId()
@@ -38,7 +58,7 @@ export const getPrefs = createServerFn({ method: 'GET' }).handler(async () => {
 })
 
 export const setPref = createServerFn({ method: 'POST' })
-  .validator(prefsSchema.partial())
+  .validator(prefsUpdateSchema)
   .handler(async ({ data }) => {
     const personId = await requirePersonId()
     for (const [key, value] of Object.entries(data)) {
@@ -65,8 +85,9 @@ export const listSavedQuestions = createServerFn({ method: 'GET' }).handler(asyn
 })
 
 export const saveQuestion = createServerFn({ method: 'POST' })
-  .validator(z.object({ patternId: z.string(), question: z.string() }))
+  .validator(z.object({ patternId: z.string(), question: z.string().trim().min(1).max(500) }))
   .handler(async ({ data }) => {
+    if (hasDoseValue(data.question)) throw new Error(DOSE_VALUE_MESSAGE)
     await db
       .insert(savedQuestions)
       .values({ ...data, personId: await requirePersonId() })

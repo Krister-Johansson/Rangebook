@@ -17,13 +17,19 @@
     "db:studio": "drizzle-kit studio",
     "mcp:build": "vite build -c mcp-app/vite.config.ts --logLevel warn",
     "mcp": "vite build -c mcp-app/vite.config.ts --logLevel error 1>&2 && tsx --tsconfig tsconfig.json src/mcp/server.ts",
-    "demo:export": "tsx --tsconfig tsconfig.json scripts/demo-export.ts"
+    "demo:export": "tsx --tsconfig tsconfig.json scripts/demo-export.ts",
+    "test": "vitest run --project unit",
+    "test:watch": "vitest --project unit",
+    "test:live": "vitest run --project live"
   },
   "dependencies": {
     "@modelcontextprotocol/core": "2.4.0",
     "@modelcontextprotocol/ext-apps": "2.0.3",
     "@modelcontextprotocol/server": "2.4.0",
     "@tailwindcss/vite": "^4.1.18",
+    "@tanstack/ai": "^1.0.0",
+    "@tanstack/ai-openrouter": "^1.0.0",
+    "@tanstack/ai-react": "^1.0.0",
     "@tanstack/match-sorter-utils": "9.2.6",
     "@tanstack/query-db-collection": "1.4.8",
     "@tanstack/react-db": "0.5.12",
@@ -72,7 +78,8 @@
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
     "vite": "^8.0.0",
-    "vite-plugin-singlefile": "^2.3.4"
+    "vite-plugin-singlefile": "^2.3.4",
+    "vitest": "^5.0.5"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

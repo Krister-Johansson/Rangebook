@@ -13,6 +13,7 @@ import {
 } from '#/server/analysis'
 import { getDataOverview, listImports } from '#/server/imports'
 import { getChangeComparison, getSettingsTimeline } from '#/server/changes'
+import { getChat, listChats } from '#/server/chats'
 import { getActivityComparison, listLifeLog } from '#/server/life-log'
 import { getPeople } from '#/server/people'
 import { getProgress } from '#/server/progress'
@@ -128,4 +129,17 @@ export const activityComparisonQuery = (id: number, leaveOutNotNormal: boolean) 
     queryKey: ['glucose', 'activity', id, leaveOutNotNormal],
     queryFn: () => getActivityComparison({ data: { id, leaveOutNotNormal } }),
     staleTime,
+  })
+
+// In-app chat. Lists change when a thread is saved, renamed or deleted.
+export const chatsQuery = queryOptions({
+  queryKey: ['chats'],
+  queryFn: () => listChats(),
+})
+
+export const chatQuery = (id: string) =>
+  queryOptions({
+    queryKey: ['chats', id],
+    queryFn: () => getChat({ data: { id } }),
+    staleTime: Infinity,
   })

@@ -8,6 +8,9 @@ import tailwindcss from '@tailwindcss/vite'
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
+  // Pre-bundle the chat client up front. Found late, Vite re-optimizes and the
+  // page can load two copies of React ("Invalid hook call") until a reload.
+  optimizeDeps: { include: ['@tanstack/ai-react'] },
   plugins: [devtools(), tailwindcss(), tanstackStart(), viteReact()],
 })
 

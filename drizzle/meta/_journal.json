@@ -43,6 +43,13 @@
       "when": 1793123666406,
       "tag": "0005_cute_war_machine",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793130933276,
+      "tag": "0006_melodic_whizzer",
+      "breakpoints": true
     }
   ]
 }

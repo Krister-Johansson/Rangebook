@@ -305,3 +305,23 @@ export const challengePicks = pgTable(
   },
   (t) => [primaryKey({ columns: [t.personId, t.weekStart] })],
 )
+
+// In-app chat threads, one row per thread, stored only on this machine. The
+// messages are the chat client's UI messages (text, tool calls and tool
+// results), so a thread renders the same way when it is opened again.
+export const chatThreads = pgTable(
+  'chat_threads',
+  {
+    id: text().primaryKey(),
+    personId: personId(),
+    title: text().notNull(),
+    messages: jsonb().$type<unknown[]>().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [index('chat_threads_person_updated_idx').on(t.personId, t.updatedAt)],
+)

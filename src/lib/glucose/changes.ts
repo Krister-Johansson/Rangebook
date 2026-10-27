@@ -207,7 +207,13 @@ export function compareAround(
 
   const warnings: string[] = []
   for (const [name, s] of [['before', before], ['after', after]] as const) {
-    if (s.days < 14) warnings.push(`Only ${s.days} day${s.days === 1 ? '' : 's'} ${name} the change. Clinics usually look at 14 days or more.`)
+    // Fewer days than picked because the data starts or ends there. Days left
+    // out as not normal get their own warning below.
+    const covered = s.days + s.daysLeftOut
+    if (covered < days) {
+      const short = `Only ${covered} day${covered === 1 ? '' : 's'} ${name} the change, not the ${days} you picked.`
+      warnings.push(covered < 14 ? `${short} Clinics usually look at 14 days or more.` : short)
+    }
     if (s.wear < 70) warnings.push(`Sensor wear ${name} the change was ${Math.round(s.wear)}%, under the 70% that makes the numbers count.`)
     if (s.daysLeftOut) warnings.push(`${s.daysLeftOut} not-normal day${s.daysLeftOut === 1 ? ' was' : 's were'} left out ${name} the change.`)
   }

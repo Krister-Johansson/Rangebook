@@ -6,6 +6,7 @@ import {
   Ellipsis,
   House,
   Lightbulb,
+  MessageCircle,
   Moon,
   PenLine,
   Sun,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 
+import { SidebarChats } from '#/components/chat/chat-history'
 import { CompanionSvg } from '#/components/companion/companion-svg'
 import { BandPatternDefs } from '#/components/glucose/band'
 import { PersonSwitcher } from '#/components/person-switcher'
@@ -34,7 +36,7 @@ import {
   SidebarProvider,
 } from '#/components/ui/sidebar'
 import { shortDate } from '#/lib/glucose/format'
-import { dataRangeQuery, patternsQuery, prefsQuery, progressQuery } from '#/lib/queries'
+import { dataRangeQuery, patternsQuery, peopleQuery, prefsQuery, progressQuery } from '#/lib/queries'
 import { setTheme } from '#/lib/ui-store'
 import { cn } from '#/lib/utils'
 
@@ -67,10 +69,12 @@ const TITLES: [string, string][] = [
   ['/more/sharing', 'What your parent sees'],
   ['/more/system', 'System check'],
   ['/more/look', 'Look'],
+  ['/more/chat', 'Ask settings'],
   ['/more', 'More'],
   ['/import', 'Import data'],
   ['/people', 'People'],
   ['/ask-claude', 'Ask Claude'],
+  ['/ask', 'Ask'],
 ]
 
 const titleOf = (pathname: string) =>
@@ -106,6 +110,8 @@ function AppSidebar() {
   const { data: patterns } = useQuery(patternsQuery)
   const { data: range } = useQuery(dataRangeQuery)
   const { data: progress } = useQuery(progressQuery)
+  const { data: people } = useQuery(peopleQuery)
+  const person = people?.people.find((p) => p.id === people.activeId)
 
   return (
     <Sidebar>
@@ -155,7 +161,12 @@ function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
-                  isActive={section === '/more' && !pathname.startsWith('/log') && pathname !== '/import'}
+                  isActive={
+                    section === '/more' &&
+                    !pathname.startsWith('/log') &&
+                    pathname !== '/import' &&
+                    !pathname.startsWith('/ask/')
+                  }
                 >
                   <Link to="/more">
                     <Ellipsis />
@@ -174,6 +185,14 @@ function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        {person ? (
+          <SidebarGroup>
+            <SidebarGroupLabel>Ask about {person.name}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarChats />
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ) : null}
       </SidebarContent>
       <SidebarFooter className="gap-3 px-2 pb-4">
         <SidebarCompanion />
@@ -267,6 +286,14 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Activity className="size-4" />
             </span>
             <div className="min-w-0 flex-1 font-semibold">{titleOf(pathname)}</div>
+            {pathname.startsWith('/ask/') ? null : (
+              <Button variant="outline" size="sm" asChild className="max-[399px]:px-2.5 md:hidden">
+                <Link to="/ask">
+                  <MessageCircle aria-hidden="true" />
+                  <span className="max-[399px]:sr-only">Ask</span>
+                </Link>
+              </Button>
+            )}
             <div className="md:hidden">
               <PersonSwitcher compact />
             </div>

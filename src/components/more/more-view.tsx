@@ -1,5 +1,5 @@
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
-import { Bot, Database, Gauge, NotebookPen, UserRound, Users } from 'lucide-react'
+import { Bot, Database, Gauge, MessageCircle, NotebookPen, UserRound, Users } from 'lucide-react'
 
 import { CompanionSvg } from '#/components/companion/companion-svg'
 import { Card, CardContent } from '#/components/ui/card'
@@ -67,6 +67,14 @@ export function MoreView() {
                   icon={<UserRound />}
                   title="People"
                   sub="Each person has their own data, patterns and questions"
+                />
+              </li>
+              <li>
+                <NavRow
+                  to={{ to: '/more/chat' }}
+                  icon={<MessageCircle />}
+                  title="Ask settings"
+                  sub="Model, privacy and chats for the in-app chat"
                 />
               </li>
               <li>

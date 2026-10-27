@@ -19,6 +19,10 @@ import { Route as PatternsRouteImport } from './routes/patterns'
 import { Route as PeopleRouteImport } from './routes/people'
 import { Route as ProgressRouteImport } from './routes/progress'
 import { Route as TrendsRouteImport } from './routes/trends'
+import { Route as ApiChatRouteImport } from './routes/api.chat'
+import { Route as AskIndexRouteImport } from './routes/ask.index'
+import { Route as AskThreadIdRouteImport } from './routes/ask.$threadId'
+import { Route as MoreChatRouteImport } from './routes/more_.chat'
 import { Route as MoreLookRouteImport } from './routes/more_.look'
 import { Route as MoreSharingRouteImport } from './routes/more_.sharing'
 import { Route as MoreSystemRouteImport } from './routes/more_.system'
@@ -76,6 +80,26 @@ const TrendsRoute = TrendsRouteImport.update({
   path: '/trends',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AskIndexRoute = AskIndexRouteImport.update({
+  id: '/ask/',
+  path: '/ask/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AskThreadIdRoute = AskThreadIdRouteImport.update({
+  id: '/ask/$threadId',
+  path: '/ask/$threadId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MoreChatRoute = MoreChatRouteImport.update({
+  id: '/more_/chat',
+  path: '/more/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MoreLookRoute = MoreLookRouteImport.update({
   id: '/more_/look',
   path: '/more/look',
@@ -118,10 +142,14 @@ export interface FileRoutesByFullPath {
   '/people': typeof PeopleRoute
   '/progress': typeof ProgressRoute
   '/trends': typeof TrendsRoute
+  '/api/chat': typeof ApiChatRoute
+  '/ask/$threadId': typeof AskThreadIdRoute
+  '/more/chat': typeof MoreChatRoute
   '/more/look': typeof MoreLookRoute
   '/more/sharing': typeof MoreSharingRoute
   '/more/system': typeof MoreSystemRoute
   '/patterns/$patternId': typeof PatternsPatternIdRoute
+  '/ask/': typeof AskIndexRoute
   '/log/activity/$activityId': typeof LogActivityActivityIdRoute
   '/trends/changes/$changeId': typeof TrendsChangesChangeIdRoute
 }
@@ -136,10 +164,14 @@ export interface FileRoutesByTo {
   '/people': typeof PeopleRoute
   '/progress': typeof ProgressRoute
   '/trends': typeof TrendsRoute
+  '/api/chat': typeof ApiChatRoute
+  '/ask/$threadId': typeof AskThreadIdRoute
+  '/more/chat': typeof MoreChatRoute
   '/more/look': typeof MoreLookRoute
   '/more/sharing': typeof MoreSharingRoute
   '/more/system': typeof MoreSystemRoute
   '/patterns/$patternId': typeof PatternsPatternIdRoute
+  '/ask': typeof AskIndexRoute
   '/log/activity/$activityId': typeof LogActivityActivityIdRoute
   '/trends/changes/$changeId': typeof TrendsChangesChangeIdRoute
 }
@@ -155,10 +187,14 @@ export interface FileRoutesById {
   '/people': typeof PeopleRoute
   '/progress': typeof ProgressRoute
   '/trends': typeof TrendsRoute
+  '/api/chat': typeof ApiChatRoute
+  '/ask/$threadId': typeof AskThreadIdRoute
+  '/more_/chat': typeof MoreChatRoute
   '/more_/look': typeof MoreLookRoute
   '/more_/sharing': typeof MoreSharingRoute
   '/more_/system': typeof MoreSystemRoute
   '/patterns_/$patternId': typeof PatternsPatternIdRoute
+  '/ask/': typeof AskIndexRoute
   '/log_/activity/$activityId': typeof LogActivityActivityIdRoute
   '/trends_/changes/$changeId': typeof TrendsChangesChangeIdRoute
 }
@@ -175,10 +211,14 @@ export interface FileRouteTypes {
     | '/people'
     | '/progress'
     | '/trends'
+    | '/api/chat'
+    | '/ask/$threadId'
+    | '/more/chat'
     | '/more/look'
     | '/more/sharing'
     | '/more/system'
     | '/patterns/$patternId'
+    | '/ask/'
     | '/log/activity/$activityId'
     | '/trends/changes/$changeId'
   fileRoutesByTo: FileRoutesByTo
@@ -193,10 +233,14 @@ export interface FileRouteTypes {
     | '/people'
     | '/progress'
     | '/trends'
+    | '/api/chat'
+    | '/ask/$threadId'
+    | '/more/chat'
     | '/more/look'
     | '/more/sharing'
     | '/more/system'
     | '/patterns/$patternId'
+    | '/ask'
     | '/log/activity/$activityId'
     | '/trends/changes/$changeId'
   id:
@@ -211,10 +255,14 @@ export interface FileRouteTypes {
     | '/people'
     | '/progress'
     | '/trends'
+    | '/api/chat'
+    | '/ask/$threadId'
+    | '/more_/chat'
     | '/more_/look'
     | '/more_/sharing'
     | '/more_/system'
     | '/patterns_/$patternId'
+    | '/ask/'
     | '/log_/activity/$activityId'
     | '/trends_/changes/$changeId'
   fileRoutesById: FileRoutesById
@@ -230,10 +278,14 @@ export interface RootRouteChildren {
   PeopleRoute: typeof PeopleRoute
   ProgressRoute: typeof ProgressRoute
   TrendsRoute: typeof TrendsRoute
+  ApiChatRoute: typeof ApiChatRoute
+  AskThreadIdRoute: typeof AskThreadIdRoute
+  MoreChatRoute: typeof MoreChatRoute
   MoreLookRoute: typeof MoreLookRoute
   MoreSharingRoute: typeof MoreSharingRoute
   MoreSystemRoute: typeof MoreSystemRoute
   PatternsPatternIdRoute: typeof PatternsPatternIdRoute
+  AskIndexRoute: typeof AskIndexRoute
   LogActivityActivityIdRoute: typeof LogActivityActivityIdRoute
   TrendsChangesChangeIdRoute: typeof TrendsChangesChangeIdRoute
 }
@@ -310,6 +362,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TrendsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ask/': {
+      id: '/ask/'
+      path: '/ask'
+      fullPath: '/ask/'
+      preLoaderRoute: typeof AskIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ask/$threadId': {
+      id: '/ask/$threadId'
+      path: '/ask/$threadId'
+      fullPath: '/ask/$threadId'
+      preLoaderRoute: typeof AskThreadIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/more_/chat': {
+      id: '/more_/chat'
+      path: '/more/chat'
+      fullPath: '/more/chat'
+      preLoaderRoute: typeof MoreChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/more_/look': {
       id: '/more_/look'
       path: '/more/look'
@@ -366,10 +446,14 @@ const rootRouteChildren: RootRouteChildren = {
   PeopleRoute: PeopleRoute,
   ProgressRoute: ProgressRoute,
   TrendsRoute: TrendsRoute,
+  ApiChatRoute: ApiChatRoute,
+  AskThreadIdRoute: AskThreadIdRoute,
+  MoreChatRoute: MoreChatRoute,
   MoreLookRoute: MoreLookRoute,
   MoreSharingRoute: MoreSharingRoute,
   MoreSystemRoute: MoreSystemRoute,
   PatternsPatternIdRoute: PatternsPatternIdRoute,
+  AskIndexRoute: AskIndexRoute,
   LogActivityActivityIdRoute: LogActivityActivityIdRoute,
   TrendsChangesChangeIdRoute: TrendsChangesChangeIdRoute,
 }
