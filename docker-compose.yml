@@ -1,0 +1,23 @@
+services:
+  db:
+    image: postgres:18
+    container_name: cgm-db
+    restart: unless-stopped
+    # Default bridge: this machine has no free address pools for a new compose network
+    network_mode: bridge
+    environment:
+      POSTGRES_USER: cgm
+      POSTGRES_PASSWORD: cgm
+      POSTGRES_DB: cgm
+    ports:
+      - "5433:5432"
+    volumes:
+      - cgm-db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cgm -d cgm"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  cgm-db-data:

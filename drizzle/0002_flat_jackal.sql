@@ -1,0 +1,1 @@
+ALTER TABLE "cgm_readings" ADD COLUMN "sensor_limit" text;

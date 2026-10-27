@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "rangebook": {
+      "command": "pnpm",
+      "args": ["--silent", "mcp"],
+      "env": {
+        "DATABASE_URL": "postgresql://cgm:cgm@localhost:5433/cgm"
+      }
+    }
+  }
+}

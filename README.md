@@ -1,0 +1,104 @@
+# Rangebook
+
+Rangebook is a local dashboard for CGM and Tandem Control-IQ pump data exported from Glooko. It is written for teenagers with type 1 diabetes and their families: it shows time in range, a typical day, a week map and patterns, and turns patterns into questions for the care team. It runs on your own machine and has no login. Nothing is sent anywhere unless you connect the optional MCP server to Claude.
+
+Rangebook is not a medical device. It does not give dosing advice, and its output is not a basis for changing pump settings without the care team.
+
+Stack: TanStack Start (Router, Query, Form, Table, Store), shadcn/ui, Drizzle ORM and Postgres 18 in Docker.
+
+## Run it
+
+```bash
+cp .env.example .env.local
+```
+
+```bash
+docker compose up -d
+```
+
+```bash
+pnpm install
+```
+
+```bash
+pnpm db:migrate
+```
+
+```bash
+pnpm dev
+```
+
+Open http://localhost:3000/import and drop the export zip. Postgres listens on port 5433 (user, password and database are all `cgm`), set in `.env.local`.
+
+### Try it with made-up data
+
+`scripts/demo-export.ts` writes a Glooko-style export for a person who does not exist. The glucose curve comes from a small simulation of meals, insulin and a Control-IQ-like controller, with a settings change halfway through, pump stops and sensor gaps, so the patterns page has something to find. It is not a physiological model.
+
+```bash
+pnpm demo:export
+```
+
+This writes `demo-export.zip` (90 days ending today). Drop it on the import page. `--days`, `--end YYYY-MM-DD`, `--seed` and `--out` change the defaults.
+
+## Import
+
+The export zip holds CSV files such as `cgm_data_1.csv`, `bolus_data_1.csv` and `basal_data_1.csv`. The parser in `src/lib/glooko/` reads them from a zip or as loose CSV files. Each table has a unique key, so importing an overlapping period skips rows that are already stored. CGM sentinel values (0.1 for LOW, 111.1 for HIGH) are stored as 2.2 and 22.2 with `sensor_limit` set.
+
+Pump timestamps are local wall-clock time without a zone and are stored as `timestamp without time zone`.
+
+## Ask Claude about the data (MCP)
+
+`src/mcp/` is a local MCP server over stdio. It reads the same Postgres database and runs the same analysis code as the dashboard, so Claude gets the same numbers. It needs Postgres running and at least one import; the web app does not have to run.
+
+`pnpm mcp` builds the view in `mcp-app/` and starts the server. `.mcp.json` registers it for Claude Code in this folder, so start `claude` here and approve the `rangebook` server when asked.
+
+For Claude Desktop, add this to `~/Library/Application Support/Claude/claude_desktop_config.json` and restart Claude Desktop:
+
+```json
+{
+  "mcpServers": {
+    "rangebook": {
+      "command": "pnpm",
+      "args": ["--silent", "--dir", "/path/to/rangebook", "mcp"],
+      "env": { "DATABASE_URL": "postgresql://cgm:cgm@localhost:5433/cgm" }
+    }
+  }
+}
+```
+
+Replace `/path/to/rangebook` with the folder you cloned into. If Claude Desktop cannot find `pnpm`, use the full path from `which pnpm` as `command`.
+
+Tools:
+
+| Tool | What it returns |
+| --- | --- |
+| `get_overview` | Data range, targets, whole-period and last-14-day summaries, what the export lacks |
+| `get_period_summary`, `compare_periods` | Consensus metrics for one period, or two periods and the change |
+| `get_hourly_profile`, `get_week_map` | Typical day by hour, weekday by hour shares |
+| `get_patterns` | Rule-based findings with evidence and a question for the care team |
+| `get_meal_responses` | Glucose at each carb bolus, change at 2 hours, lows within 4 hours |
+| `list_days`, `get_day`, `list_events` | Day summaries, one day in detail, lows, very lows, sensor-high runs, pump stops |
+| `get_system_check`, `get_glossary` | Wear, carb entries, automatic share, pump stops; fixed term explanations |
+| `list_saved_questions`, `save_question_for_clinic` | The clinic list on the Patterns page (the only write) |
+| `show_week_summary`, `show_typical_day`, `show_patterns`, `show_day` | Same data as an interactive view (MCP Apps) |
+
+Prompts: `weekly_review`, `clinic_prep` and `explain_day`.
+
+The `show_*` tools use the MCP Apps extension. Claude Desktop and claude.ai render them as charts and cards in the chat, and the patterns view can save questions for clinic. Claude Code in a terminal gets the same data as text.
+
+The server instructions tell Claude to take every number from a tool, to frame findings as questions for the care team and never to suggest doses, setting values or which way a setting should change. The tools never return the patient name.
+
+Privacy: the server runs locally, but whatever a tool returns is sent to Anthropic as part of the conversation, the same as anything typed into Claude. Tools return summaries; `get_day` and `show_day` return one day's readings.
+
+## Data
+
+`data/` and `*.zip` are git-ignored. Do not commit export files: the first line of every CSV holds the patient's full name, and the rows are health data.
+
+## Docs
+
+- `docs/export-format.md`: the files and columns in a Glooko export from a Tandem pump, and what the export does not contain
+- `docs/research/`: clinical rules, algorithms, LLM agent design and teen UX research
+
+## License
+
+MIT. See `LICENSE`.
