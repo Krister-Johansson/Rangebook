@@ -3,12 +3,19 @@ import { z } from 'zod'
 
 import { EmptyState } from '#/components/glucose/empty-state'
 import { DayView } from '#/components/day/day-view'
-import { dayQuery, daysQuery } from '#/lib/queries'
+import { dayQuery, daysQuery, lifeLogQuery } from '#/lib/queries'
 
-const search = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  insulin: z.boolean().default(false),
-})
+const isoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+
+// `date` is the canonical key. `day` is accepted too, so /day?day=YYYY-MM-DD
+// links work; it is folded into `date`.
+const search = z
+  .object({
+    date: isoDay.optional().catch(undefined),
+    day: isoDay.optional().catch(undefined),
+    insulin: z.boolean().default(false),
+  })
+  .transform(({ day, ...rest }) => ({ ...rest, date: rest.date ?? day }))
 
 export const Route = createFileRoute('/day')({
   validateSearch: search,
@@ -17,6 +24,7 @@ export const Route = createFileRoute('/day')({
     const [day] = await Promise.all([
       context.queryClient.ensureQueryData(dayQuery(deps.date)),
       context.queryClient.ensureQueryData(daysQuery(14)),
+      context.queryClient.ensureQueryData(lifeLogQuery),
     ])
     return day
   },

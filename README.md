@@ -74,7 +74,7 @@ For Claude Desktop, add this to `~/Library/Application Support/Claude/claude_des
 }
 ```
 
-Replace `/path/to/rangebook` with the folder you cloned into. With more than one person stored, every tool takes a `person` argument (a name or id from `list_people`). To fix the server to one person, add `"RANGEBOOK_PERSON": "Name"` to `env`.
+Replace `/path/to/rangebook` with the folder you cloned into. Claude Desktop starts servers with a short `PATH`, so if node is installed with nvm or similar, the server fails with "node: not found"; add a `PATH` entry to `env` with the folders of node and pnpm. The Ask Claude page in the app (http://localhost:3000/ask-claude) builds this config with the right paths for your computer, with steps for Claude Code too. With more than one person stored, every tool takes a `person` argument (a name or id from `list_people`). To fix the server to one person, add `"RANGEBOOK_PERSON": "Name"` to `env`.
 
 If Claude Desktop cannot find `pnpm`, use the full path from `which pnpm` as `command`.
 

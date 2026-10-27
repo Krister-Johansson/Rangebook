@@ -1,3 +1,4 @@
+import { useStore } from "@tanstack/react-store"
 import {
   CircleCheckIcon,
   InfoIcon,
@@ -5,16 +6,20 @@ import {
   OctagonXIcon,
   TriangleAlertIcon,
 } from "lucide-react"
-import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
+import { uiStore } from "#/lib/ui-store"
+
+// The theme lives in the app's own store (src/lib/ui-store.ts), not next-themes.
+// On phones the toasts sit above the bottom tab bar and the home indicator.
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
+  const theme = useStore(uiStore, (s) => s.theme)
 
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme={theme}
       className="toaster group"
+      mobileOffset={{ bottom: "calc(4.5rem + env(safe-area-inset-bottom))" }}
       icons={{
         success: <CircleCheckIcon className="size-4" />,
         info: <InfoIcon className="size-4" />,

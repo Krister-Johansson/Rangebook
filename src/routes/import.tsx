@@ -12,6 +12,8 @@ import { toast } from 'sonner'
 
 import { DataTable, SortHeader, sortableFeatures } from '#/components/data-table'
 import { DropZone, isAcceptedFile } from '#/components/import/drop-zone'
+import { ImportDoneSheet } from '#/components/import/import-done-sheet'
+import type { ImportDone } from '#/components/import/import-done-sheet'
 import { Alert, AlertDescription, AlertTitle } from '#/components/ui/alert'
 import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
@@ -32,7 +34,7 @@ import {
   SelectValue,
 } from '#/components/ui/select'
 import { Switch } from '#/components/ui/switch'
-import { importsQuery, overviewQuery, peopleQuery } from '#/lib/queries'
+import { importsQuery, overviewQuery, peopleQuery, prefsQuery, progressQuery } from '#/lib/queries'
 import { refreshForPerson } from '#/lib/use-switch-person'
 import { deleteImport, ingestExport } from '#/server/imports'
 import type { IngestResponse } from '#/server/imports'
@@ -73,6 +75,7 @@ function ImportPage() {
   const { people, activeId } = peopleData
   const [check, setCheck] = useState<Check | null>(null)
   const [result, setResult] = useState<IngestResult | null>(null)
+  const [done, setDone] = useState<ImportDone | null>(null)
 
   const mutation = useMutation({
     mutationFn: (fd: FormData) => ingestExport({ data: fd }),
@@ -97,6 +100,8 @@ function ImportPage() {
     fd.append('personId', value.personId)
     fd.append('replaceExisting', String(value.replaceExisting))
     fd.append('confirmed', String(confirmed))
+    // Progress before the upload, to show what this import added.
+    const before = await queryClient.fetchQuery(progressQuery).catch(() => null)
     const res = await mutation.mutateAsync(fd)
     if (res.status === 'check') {
       setCheck(res)
@@ -111,6 +116,17 @@ function ImportPage() {
     if (res.personId !== activeId) await setActivePerson({ data: { id: res.personId } })
     await refreshForPerson(queryClient, router)
     form.reset({ files: [], personId: String(res.personId), replaceExisting: false })
+    const [after, prefs] = await Promise.all([
+      queryClient.fetchQuery(progressQuery).catch(() => null),
+      queryClient.fetchQuery(prefsQuery).catch(() => null),
+    ])
+    setDone({
+      before: res.personId === activeId ? before : null,
+      after,
+      pet: prefs?.pet ?? { name: 'Pip', color: 'sky' },
+      from: res.result.rangeStart,
+      to: res.result.rangeEnd,
+    })
   }
 
   if (people.length === 0) {
@@ -300,6 +316,12 @@ function ImportPage() {
       </Card>
 
       {result && <ImportResult result={result} />}
+      <ImportDoneSheet
+        done={done}
+        onOpenChange={(open) => {
+          if (!open) setDone(null)
+        }}
+      />
 
       <StoredData name={people.find((p) => p.id === activeId)?.name ?? ''} />
       <ImportHistory name={people.find((p) => p.id === activeId)?.name ?? ''} />

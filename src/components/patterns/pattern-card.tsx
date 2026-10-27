@@ -1,17 +1,9 @@
+import { ChevronRight, Stethoscope } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
-import { ChevronRight, Clock, Stethoscope } from 'lucide-react'
 
-import { KindBadge } from '#/components/glucose/band'
 import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '#/components/ui/card'
+import { Card, CardContent } from '#/components/ui/card'
 import type { Pattern } from '#/lib/glucose/patterns'
 import { cn } from '#/lib/utils'
 
@@ -24,23 +16,30 @@ const STRENGTH: Record<Pattern['strength'], string> = {
   1: 'Early sign',
 }
 
-export const patternCardId = (id: string) => `pattern-${id}`
-
-function StrengthMeter({ level, note }: { level: Pattern['strength']; note: string }) {
+/** Three bars for how strong the evidence is, always with the words next to it. */
+export function StrengthMeter({
+  level,
+  note,
+  compact = false,
+}: {
+  level: Pattern['strength']
+  note?: string
+  compact?: boolean
+}) {
   return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
       <span className="inline-flex items-end gap-0.5" aria-hidden="true">
         {[7, 10, 13].map((h, i) => (
           <span
             key={h}
             className={cn('w-[5px] rounded-[2px]', i < level ? 'bg-foreground' : 'bg-border')}
-            style={{ height: h }}
+            style={{ height: compact ? h - 2 : h }}
           />
         ))}
       </span>
-      <span className="font-medium">{STRENGTH[level]}</span>
-      <span className="basis-full text-muted-foreground">{note}</span>
-    </div>
+      <span className={compact ? 'text-xs font-semibold' : 'font-medium'}>{STRENGTH[level]}</span>
+      {note ? <span className="basis-full text-muted-foreground">{note}</span> : null}
+    </span>
   )
 }
 
@@ -52,70 +51,66 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   )
 }
 
-export function PatternCard({ pattern: p, focused }: { pattern: Pattern; focused: boolean }) {
+/** Evidence, strength and chart for one pattern. */
+export function PatternMain({ pattern: p, days }: { pattern: Pattern; days: number }) {
   return (
-    <Card
-      id={patternCardId(p.id)}
-      tabIndex={-1}
-      className={cn(
-        '@container scroll-mt-20 gap-4 outline-none transition-shadow duration-500',
-        focused && 'ring-2 ring-ring ring-offset-2 ring-offset-background',
-      )}
-    >
-      <CardHeader className="px-4 sm:px-6">
-        <CardTitle className="leading-snug">
-          <h2>{p.title}</h2>
-        </CardTitle>
-        <CardDescription className="flex items-center gap-1.5">
-          <Clock className="size-3.5 shrink-0" aria-hidden="true" />
-          {p.when}
-        </CardDescription>
-        <CardAction>
-          <KindBadge kind={p.kind} />
-        </CardAction>
-      </CardHeader>
-      <CardContent className="grid grid-cols-1 gap-4 px-4 sm:px-6 @3xl:grid-cols-2">
-        <div className="flex flex-col gap-2.5 text-sm leading-relaxed @3xl:col-start-1 @3xl:row-start-1">
-          <p>{p.evidence}</p>
-          {p.extra ? <p className="text-muted-foreground">{p.extra}</p> : null}
-          <StrengthMeter level={p.strength} note={p.strengthNote} />
-        </div>
-
-        <figure className="m-0 flex min-w-0 flex-col gap-1.5 rounded-lg bg-muted/55 p-3 @3xl:col-start-2 @3xl:row-span-2 @3xl:row-start-1">
+    <Card className="gap-4 py-5">
+      <CardContent className="flex flex-col gap-3 px-4 text-sm leading-relaxed sm:px-6">
+        <p>{p.evidence}</p>
+        {p.extra ? <p className="text-muted-foreground">{p.extra}</p> : null}
+        <StrengthMeter level={p.strength} note={p.strengthNote} />
+        <figure className="m-0 flex min-w-0 flex-col gap-1.5 rounded-lg bg-muted/55 p-3">
           <PatternChart chart={p.chart} />
-          <figcaption className="text-[13px]">{p.caption}</figcaption>
+          <figcaption className="text-[13px]">
+            {p.caption} Last {days} days.
+          </figcaption>
         </figure>
+      </CardContent>
+    </Card>
+  )
+}
 
-        <div className="@3xl:col-start-1 @3xl:row-start-2">
-          <Eyebrow>Areas your team may look at</Eyebrow>
-          <ul className="mb-1.5 flex flex-wrap gap-1.5" aria-label="Areas your team may look at">
-            {p.topics.map((t) => (
-              <li key={t}>
-                <Badge variant="secondary">{t}</Badge>
-              </li>
-            ))}
-          </ul>
-          {p.topicsNote ? <p className="text-sm text-muted-foreground">{p.topicsNote}</p> : null}
-        </div>
+/** The question for the care team with Save for clinic. */
+export function PatternQuestion({ pattern: p }: { pattern: Pattern }) {
+  return (
+    <div className="rounded-xl border bg-card p-4">
+      <Eyebrow>
+        <Stethoscope className="size-3.5" aria-hidden="true" />
+        Question for the care team
+      </Eyebrow>
+      <p className="mb-3 text-[15px] leading-normal font-medium">{p.question}</p>
+      <div className="flex flex-wrap gap-2">
+        <SaveQuestionButton patternId={p.id} question={p.question} />
+        {p.exampleDay ? (
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/day" search={{ date: p.exampleDay }}>
+              See an example day
+              <ChevronRight aria-hidden="true" />
+            </Link>
+          </Button>
+        ) : null}
+      </div>
+      <p className="mt-2 text-xs text-muted-foreground">
+        Saving gives 5 XP, once per question. It waits in For clinic until your visit.
+      </p>
+    </div>
+  )
+}
 
-        <div className="rounded-xl border bg-background p-3.5 @3xl:col-span-2">
-          <Eyebrow>
-            <Stethoscope className="size-3.5" aria-hidden="true" />
-            Question for the care team
-          </Eyebrow>
-          <p className="mb-3 text-[14.5px] font-medium leading-normal">{p.question}</p>
-          <div className="flex flex-wrap gap-2">
-            <SaveQuestionButton patternId={p.id} question={p.question} />
-            {p.exampleDay ? (
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/day" search={{ date: p.exampleDay }}>
-                  See an example day
-                  <ChevronRight aria-hidden="true" />
-                </Link>
-              </Button>
-            ) : null}
-          </div>
-        </div>
+/** Areas the care team may look at. */
+export function PatternTopics({ pattern: p }: { pattern: Pattern }) {
+  return (
+    <Card className="py-4">
+      <CardContent className="px-4 sm:px-5">
+        <Eyebrow>Areas your team may look at</Eyebrow>
+        <ul className="mb-1.5 flex flex-wrap gap-1.5" aria-label="Areas your team may look at">
+          {p.topics.map((t) => (
+            <li key={t}>
+              <Badge variant="secondary">{t}</Badge>
+            </li>
+          ))}
+        </ul>
+        {p.topicsNote ? <p className="text-sm text-muted-foreground">{p.topicsNote}</p> : null}
       </CardContent>
     </Card>
   )

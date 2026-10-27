@@ -10,7 +10,7 @@ import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import type { Goal } from '#/lib/glucose/analysis'
 import { prefsQuery } from '#/lib/queries'
 
-import { SectionCard } from './section-card'
+import { SectionCard } from '#/components/home/section-card'
 
 function GoalCardInner({ goals, className }: { goals: Goal[]; className?: string }) {
   const [editing, setEditing] = useState(false)

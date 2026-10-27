@@ -98,6 +98,7 @@ export async function loadDataset(personId: number): Promise<Dataset | null> {
       units: b.deliveredU,
       carbs: b.carbsG ?? 0,
       bg: b.bgInputMmol,
+      ratio: b.carbRatio,
     })),
     basal: bas.map((b) => ({
       min: toMin(b.ts),

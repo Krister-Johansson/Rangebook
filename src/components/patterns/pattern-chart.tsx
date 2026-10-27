@@ -64,6 +64,7 @@ function HourBarsChart({ chart }: { chart: HourBars }) {
           />
           <YAxis hide domain={[0, max * 1.15]} />
           <ChartTooltip
+isAnimationActive={false}
             cursor={false}
             content={
               <ChartTooltipContent
@@ -146,6 +147,7 @@ function PairedBarsChart({ chart }: { chart: PairedBars }) {
           />
           <YAxis hide domain={[0, max * 1.1]} />
           <ChartTooltip
+isAnimationActive={false}
             cursor={false}
             content={
               <ChartTooltipContent

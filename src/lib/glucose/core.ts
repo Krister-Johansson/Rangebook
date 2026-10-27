@@ -47,6 +47,8 @@ export interface Bolus {
   units: number
   carbs: number
   bg: number | null
+  // Carb ratio from the pump profile, when the export filled it in.
+  ratio: number | null
 }
 
 export interface BasalSegment {

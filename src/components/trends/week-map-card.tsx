@@ -17,11 +17,12 @@ import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import { Tooltip, TooltipContent, TooltipTrigger } from '#/components/ui/tooltip'
 import type { HeatCell } from '#/lib/glucose/analysis'
 import { WEEKDAY_LONG, WEEKDAY_SHORT, shortDate } from '#/lib/glucose/format'
-import { heatmapQuery } from '#/lib/queries'
+import { heatmapQuery, lifeLogQuery } from '#/lib/queries'
 import { cn } from '#/lib/utils'
 
 import { hourLabel } from './clusters'
 import { Legend, LegendItem } from './legend'
+import { activityHourMarks, weeklyActivities } from './log-bands'
 
 type Mode = 'below' | 'above'
 
@@ -59,13 +60,18 @@ const pctText = (v: number) => `${Math.round(v)}%`
 
 export function WeekMapCard() {
   const { data } = useSuspenseQuery(heatmapQuery)
+  const { data: log } = useSuspenseQuery(lifeLogQuery)
   const [mode, setMode] = useState<Mode>('below')
   const [showAll, setShowAll] = useState(false)
+  const [showActs, setShowActs] = useState(true)
   const [selected, setSelected] = useState<{ d: number; h: number } | null>(null)
 
   const m = MODES[mode]
   const cells = data?.cells ?? []
   const sel = selected ? cells[selected.d]?.[selected.h] : null
+  const acts = weeklyActivities(log, data?.from, data?.to)
+  const marks = showActs ? activityHourMarks(log, data?.from, data?.to) : new Map<string, string[]>()
+  const selMark = selected ? marks.get(`${selected.d}-${selected.h}`) : undefined
 
   return (
     <Card>
@@ -121,6 +127,7 @@ export function WeekMapCard() {
                   mode={mode}
                   showAll={showAll}
                   selected={selected?.d === d ? selected.h : null}
+                  marks={marks}
                   onSelect={(h) => setSelected({ d, h })}
                 />
               ))}
@@ -135,7 +142,8 @@ export function WeekMapCard() {
               <span className="font-semibold">
                 {WEEKDAY_LONG[selected.d]}, {hourLabel(selected.h)} to {hourLabel(selected.h + 1)}:
               </span>{' '}
-              {sel.n ? `${pctText(sel[m.key])} of readings ${m.word} (${sel.n} readings).` : 'no readings.'}
+              {sel.n ? `${pctText(sel[m.key])} of readings ${m.word} (${sel.n} reading${sel.n === 1 ? '' : 's'}).` : 'no readings.'}
+              {selMark ? ` Logged activity: ${selMark.join(', ')}.` : ''}
             </>
           ) : (
             <span className="text-muted-foreground">Tap or hover a square to see its number.</span>
@@ -151,11 +159,27 @@ export function WeekMapCard() {
           <LegendItem swatch={{}} className="border border-dashed border-muted-foreground/40">
             No readings
           </LegendItem>
+          {showActs && acts.length ? (
+            <LegendItem swatch={{ boxShadow: 'inset 0 0 0 2px var(--act)' }}>
+              {[...new Set(acts.map((a) => a.text))].join(', ')} (from your log)
+            </LegendItem>
+          ) : null}
         </Legend>
 
         <p className="text-sm">{mapCaption(cells, mode)}</p>
 
         <Separator />
+        <div className="flex items-start gap-3">
+          <Switch id="map-acts" checked={showActs} onCheckedChange={setShowActs} className="mt-0.5" />
+          <div className="grid gap-1">
+            <Label htmlFor="map-acts">Mark activities from your log</Label>
+            <p className="text-xs text-muted-foreground">
+              {acts.length
+                ? 'Outlines the hours of activities that repeat every week.'
+                : 'No weekly activities in your log for these days yet.'}
+            </p>
+          </div>
+        </div>
         <div className="flex items-start gap-3">
           <Switch id="heat-nums" checked={showAll} onCheckedChange={setShowAll} className="mt-0.5" />
           <div className="grid gap-1">
@@ -174,6 +198,7 @@ function Row({
   mode,
   showAll,
   selected,
+  marks,
   onSelect,
 }: {
   d: number
@@ -181,6 +206,7 @@ function Row({
   mode: Mode
   showAll: boolean
   selected: number | null
+  marks: Map<string, string[]>
   onSelect: (h: number) => void
 }) {
   const m = MODES[mode]
@@ -200,13 +226,16 @@ function Row({
         const v = empty ? 0 : c[m.key]
         const label = `${WEEKDAY_LONG[d]}, ${hourLabel(h)} to ${hourLabel(h + 1)}`
         const text = empty ? 'No readings' : `${pctText(v)} of readings ${m.word}`
+        const mark = marks.get(`${d}-${h}`)
+        const markText = mark ? `, ${mark.join(', ')} from your log` : ''
         const isSel = selected === h
+        const base = empty ? {} : stepStyle(mode, m.step(v))
         return (
           <Tooltip key={h}>
             <TooltipTrigger asChild>
               <button
                 type="button"
-                aria-label={`${label}: ${text}`}
+                aria-label={`${label}: ${text}${markText}`}
                 aria-pressed={isSel}
                 onClick={() => onSelect(h)}
                 className={cn(
@@ -215,7 +244,7 @@ function Row({
                   isSel && 'ring-2 ring-foreground',
                   empty && 'border border-dashed border-muted-foreground/40',
                 )}
-                style={empty ? undefined : stepStyle(mode, m.step(v))}
+                style={mark ? { ...base, outline: '2px solid var(--act)', outlineOffset: -2 } : base}
               >
                 {empty ? null : (
                   <span aria-hidden="true" className={cn(showAll || isSel ? 'inline' : 'hidden @2xl:inline')}>
@@ -227,7 +256,10 @@ function Row({
             <TooltipContent side="top">
               <div className="font-medium">{label}</div>
               <div>{text}</div>
-              {empty ? null : <div className="opacity-80">{c.n} readings</div>}
+              {empty ? null : <div className="opacity-80">
+                  {c.n} reading{c.n === 1 ? '' : 's'}
+                </div>}
+              {mark ? <div>Logged activity: {mark.join(', ')}</div> : null}
             </TooltipContent>
           </Tooltip>
         )

@@ -2,13 +2,14 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { EmptyState } from '#/components/glucose/empty-state'
 import { HomeView } from '#/components/home/home-view'
-import { homeQuery, prefsQuery } from '#/lib/queries'
+import { homeQuery, prefsQuery, progressQuery } from '#/lib/queries'
 
 export const Route = createFileRoute('/')({
   loader: async ({ context }) => {
     const [home] = await Promise.all([
       context.queryClient.ensureQueryData(homeQuery),
       context.queryClient.ensureQueryData(prefsQuery),
+      context.queryClient.ensureQueryData(progressQuery),
     ])
     return home
   },

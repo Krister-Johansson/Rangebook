@@ -1,16 +1,11 @@
+import { Link } from '@tanstack/react-router'
+import { ChevronRight } from 'lucide-react'
+
 import { BandSwatch, bandVar } from '#/components/glucose/band'
-import { Badge } from '#/components/ui/badge'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '#/components/ui/table'
+import { Button } from '#/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '#/components/ui/tooltip'
 import type { PeriodSummary } from '#/lib/glucose/analysis'
-import { BANDS, TARGETS } from '#/lib/glucose/core'
+import { BANDS } from '#/lib/glucose/core'
 import type { Band } from '#/lib/glucose/core'
 import { hm, perDay } from '#/lib/glucose/format'
 import { cn } from '#/lib/utils'
@@ -80,6 +75,18 @@ function compareSentence(thisWeek: PeriodSummary, lastWeek: PeriodSummary) {
   return 'About the same time in range as last week.'
 }
 
+function DaysLink() {
+  return (
+    <Button variant="ghost" size="sm" asChild>
+      <Link to="/trends" search={{ tab: 'days' }}>
+        Days
+        <ChevronRight />
+      </Link>
+    </Button>
+  )
+}
+
+/** Compact time in ranges for Home: this week against last week. */
 export function TirCard({
   thisWeek,
   lastWeek,
@@ -92,13 +99,15 @@ export function TirCard({
   const W = thisWeek.stats
   const L = lastWeek.stats
   const hasLast = L.n > 0
+  const below = W.pct.vlow + W.pct.low
+  const above = W.pct.high + W.pct.vhigh
   return (
     <SectionCard
       title="Time in ranges"
       description={`This week, ${thisWeek.label}`}
-      action={<Badge variant="outline">mmol/L</Badge>}
+      action={<DaysLink />}
       className={className}
-      contentClassName="flex flex-col gap-4"
+      contentClassName="flex flex-col gap-3"
     >
       {W.n === 0 ? (
         <p className="text-sm text-muted-foreground">
@@ -106,75 +115,44 @@ export function TirCard({
         </p>
       ) : (
         <>
-          <div className="flex flex-col gap-0.5">
-            <div className="text-[34px] leading-none font-extrabold tracking-tight sm:text-[40px]">
-              {perDay(W.pct.in)}
+          <div className="flex items-end gap-3">
+            <div className="text-[34px] leading-none font-extrabold tracking-tight tabular-nums sm:text-[40px]">
+              {Math.round(W.pct.in)}%
             </div>
-            <div className="text-sm text-muted-foreground">
-              in range per day ({W.pct.in.toFixed(1)}% of readings, 3.9 to 10.0)
+            <div className="pb-0.5 text-xs leading-snug text-muted-foreground">
+              in range, 3.9 to 10.0
+              <br />
+              about {perDay(W.pct.in)} a day
             </div>
           </div>
 
           <div className="flex flex-col gap-2">
-            <div className="grid grid-cols-[74px_minmax(0,1fr)] items-center gap-2.5">
+            <div className="grid grid-cols-[68px_minmax(0,1fr)] items-center gap-2.5">
               <span className="text-xs font-semibold">This week</span>
               <TirBar pct={W.pct} label="This week" size="lg" />
             </div>
             {hasLast ? (
-              <div className="grid grid-cols-[74px_minmax(0,1fr)] items-center gap-2.5">
+              <div className="grid grid-cols-[68px_minmax(0,1fr)] items-center gap-2.5">
                 <span className="text-xs font-semibold text-muted-foreground">Last week</span>
                 <TirBar pct={L.pct} label="Last week" size="sm" />
               </div>
             ) : null}
-            <div
-              aria-hidden="true"
-              className="ml-[84px] flex justify-between text-[11px] text-muted-foreground"
-            >
-              <span>Below range</span>
-              <span>Above range</span>
-            </div>
           </div>
 
           <p className="text-sm">{compareSentence(thisWeek, lastWeek)}</p>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="pl-0">Range</TableHead>
-                <TableHead className="text-right">This week</TableHead>
-                <TableHead className="pr-0 text-right">Last week</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {BANDS.map((b) => (
-                <TableRow key={b.key} className={cn(b.key === 'in' && 'font-bold')}>
-                  <TableCell className="pl-0">
-                    <div className="flex items-center gap-2.5 leading-tight">
-                      <BandSwatch band={b.key} className="size-3" />
-                      <div>
-                        <div>{b.label}</div>
-                        <div className="text-xs font-normal text-muted-foreground">{b.range}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    <div>{W.pct[b.key].toFixed(1)}%</div>
-                    <div className="text-xs font-medium text-muted-foreground">
-                      {perDay(W.pct[b.key])} a day
-                    </div>
-                  </TableCell>
-                  <TableCell className="pr-0 text-right text-muted-foreground tabular-nums">
-                    {hasLast ? `${L.pct[b.key].toFixed(1)}%` : 'No data'}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-
-          <p className="text-xs text-muted-foreground">
-            Each 1% is about 15 minutes a day. Clinic targets: over {TARGETS.inRange}% in range,
-            under {TARGETS.below39}% below 3.9, under {TARGETS.below30}% below 3.0.
-          </p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            <span className="inline-flex items-center gap-1.5">
+              <BandSwatch band="low" className="size-3" />
+              <span className="font-semibold tabular-nums">{below.toFixed(1)}%</span>
+              <span className="text-muted-foreground">below 3.9</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <BandSwatch band="high" className="size-3" />
+              <span className="font-semibold tabular-nums">{above.toFixed(1)}%</span>
+              <span className="text-muted-foreground">above 10.0</span>
+            </span>
+          </div>
         </>
       )}
     </SectionCard>

@@ -1,18 +1,32 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, asc, eq } from 'drizzle-orm'
+import { and, asc, eq, isNull } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '#/db'
 import { preferences, savedQuestions } from '#/db/schema'
 import { activePersonId, requirePersonId } from './active-person'
 
-export const SHARE_KEYS = ['home', 'typical', 'map', 'patterns', 'days'] as const
+export const SHARE_KEYS = ['home', 'typical', 'map', 'patterns', 'days', 'progress'] as const
 
 export const prefsSchema = z.object({
   goalId: z.string().default('lunch'),
+  // Each key has its own default, so sharing saved before a key existed still parses.
   sharing: z
-    .record(z.enum(SHARE_KEYS), z.boolean())
-    .default({ home: true, typical: true, map: true, patterns: false, days: false }),
+    .object({
+      home: z.boolean().default(true),
+      typical: z.boolean().default(true),
+      map: z.boolean().default(true),
+      patterns: z.boolean().default(false),
+      days: z.boolean().default(false),
+      progress: z.boolean().default(false),
+    })
+    .default({ home: true, typical: true, map: true, patterns: false, days: false, progress: false }),
+  // The companion's name and color (see src/components/companion).
+  pet: z
+    .object({ name: z.string().max(24), color: z.string() })
+    .default({ name: 'Pip', color: 'sky' }),
+  // Leave days tagged as not normal out of patterns and comparisons.
+  excludeNotNormal: z.boolean().default(false),
 })
 
 export type Prefs = z.infer<typeof prefsSchema>
@@ -46,7 +60,7 @@ export const listSavedQuestions = createServerFn({ method: 'GET' }).handler(asyn
   return db
     .select({ patternId: savedQuestions.patternId, question: savedQuestions.question, createdAt: savedQuestions.createdAt })
     .from(savedQuestions)
-    .where(eq(savedQuestions.personId, personId))
+    .where(and(eq(savedQuestions.personId, personId), isNull(savedQuestions.removedAt)))
     .orderBy(asc(savedQuestions.createdAt))
 })
 
@@ -56,7 +70,10 @@ export const saveQuestion = createServerFn({ method: 'POST' })
     await db
       .insert(savedQuestions)
       .values({ ...data, personId: await requirePersonId() })
-      .onConflictDoNothing()
+      .onConflictDoUpdate({
+        target: [savedQuestions.personId, savedQuestions.patternId],
+        set: { removedAt: null, question: data.question },
+      })
     return { ok: true }
   })
 
@@ -65,7 +82,8 @@ export const removeQuestion = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const personId = await requirePersonId()
     await db
-      .delete(savedQuestions)
+      .update(savedQuestions)
+      .set({ removedAt: new Date() })
       .where(and(eq(savedQuestions.personId, personId), eq(savedQuestions.patternId, data.patternId)))
     return { ok: true }
   })

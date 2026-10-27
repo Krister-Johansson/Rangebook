@@ -10,16 +10,30 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AskClaudeRouteImport } from './routes/ask-claude'
 import { Route as DayRouteImport } from './routes/day'
 import { Route as ImportRouteImport } from './routes/import'
+import { Route as LogRouteImport } from './routes/log'
 import { Route as MoreRouteImport } from './routes/more'
 import { Route as PatternsRouteImport } from './routes/patterns'
 import { Route as PeopleRouteImport } from './routes/people'
+import { Route as ProgressRouteImport } from './routes/progress'
 import { Route as TrendsRouteImport } from './routes/trends'
+import { Route as MoreLookRouteImport } from './routes/more_.look'
+import { Route as MoreSharingRouteImport } from './routes/more_.sharing'
+import { Route as MoreSystemRouteImport } from './routes/more_.system'
+import { Route as PatternsPatternIdRouteImport } from './routes/patterns_.$patternId'
+import { Route as LogActivityActivityIdRouteImport } from './routes/log_.activity.$activityId'
+import { Route as TrendsChangesChangeIdRouteImport } from './routes/trends_.changes.$changeId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AskClaudeRoute = AskClaudeRouteImport.update({
+  id: '/ask-claude',
+  path: '/ask-claude',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DayRoute = DayRouteImport.update({
@@ -30,6 +44,11 @@ const DayRoute = DayRouteImport.update({
 const ImportRoute = ImportRouteImport.update({
   id: '/import',
   path: '/import',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LogRoute = LogRouteImport.update({
+  id: '/log',
+  path: '/log',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MoreRoute = MoreRouteImport.update({
@@ -47,65 +66,176 @@ const PeopleRoute = PeopleRouteImport.update({
   path: '/people',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProgressRoute = ProgressRouteImport.update({
+  id: '/progress',
+  path: '/progress',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TrendsRoute = TrendsRouteImport.update({
   id: '/trends',
   path: '/trends',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MoreLookRoute = MoreLookRouteImport.update({
+  id: '/more_/look',
+  path: '/more/look',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MoreSharingRoute = MoreSharingRouteImport.update({
+  id: '/more_/sharing',
+  path: '/more/sharing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MoreSystemRoute = MoreSystemRouteImport.update({
+  id: '/more_/system',
+  path: '/more/system',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatternsPatternIdRoute = PatternsPatternIdRouteImport.update({
+  id: '/patterns_/$patternId',
+  path: '/patterns/$patternId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LogActivityActivityIdRoute = LogActivityActivityIdRouteImport.update({
+  id: '/log_/activity/$activityId',
+  path: '/log/activity/$activityId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TrendsChangesChangeIdRoute = TrendsChangesChangeIdRouteImport.update({
+  id: '/trends_/changes/$changeId',
+  path: '/trends/changes/$changeId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/ask-claude': typeof AskClaudeRoute
   '/day': typeof DayRoute
   '/import': typeof ImportRoute
+  '/log': typeof LogRoute
   '/more': typeof MoreRoute
   '/patterns': typeof PatternsRoute
   '/people': typeof PeopleRoute
+  '/progress': typeof ProgressRoute
   '/trends': typeof TrendsRoute
+  '/more/look': typeof MoreLookRoute
+  '/more/sharing': typeof MoreSharingRoute
+  '/more/system': typeof MoreSystemRoute
+  '/patterns/$patternId': typeof PatternsPatternIdRoute
+  '/log/activity/$activityId': typeof LogActivityActivityIdRoute
+  '/trends/changes/$changeId': typeof TrendsChangesChangeIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/ask-claude': typeof AskClaudeRoute
   '/day': typeof DayRoute
   '/import': typeof ImportRoute
+  '/log': typeof LogRoute
   '/more': typeof MoreRoute
   '/patterns': typeof PatternsRoute
   '/people': typeof PeopleRoute
+  '/progress': typeof ProgressRoute
   '/trends': typeof TrendsRoute
+  '/more/look': typeof MoreLookRoute
+  '/more/sharing': typeof MoreSharingRoute
+  '/more/system': typeof MoreSystemRoute
+  '/patterns/$patternId': typeof PatternsPatternIdRoute
+  '/log/activity/$activityId': typeof LogActivityActivityIdRoute
+  '/trends/changes/$changeId': typeof TrendsChangesChangeIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/ask-claude': typeof AskClaudeRoute
   '/day': typeof DayRoute
   '/import': typeof ImportRoute
+  '/log': typeof LogRoute
   '/more': typeof MoreRoute
   '/patterns': typeof PatternsRoute
   '/people': typeof PeopleRoute
+  '/progress': typeof ProgressRoute
   '/trends': typeof TrendsRoute
+  '/more_/look': typeof MoreLookRoute
+  '/more_/sharing': typeof MoreSharingRoute
+  '/more_/system': typeof MoreSystemRoute
+  '/patterns_/$patternId': typeof PatternsPatternIdRoute
+  '/log_/activity/$activityId': typeof LogActivityActivityIdRoute
+  '/trends_/changes/$changeId': typeof TrendsChangesChangeIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/day' | '/import' | '/more' | '/patterns' | '/people' | '/trends'
-  fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/day' | '/import' | '/more' | '/patterns' | '/people' | '/trends'
-  id:
-    | '__root__'
     | '/'
+    | '/ask-claude'
     | '/day'
     | '/import'
+    | '/log'
     | '/more'
     | '/patterns'
     | '/people'
+    | '/progress'
     | '/trends'
+    | '/more/look'
+    | '/more/sharing'
+    | '/more/system'
+    | '/patterns/$patternId'
+    | '/log/activity/$activityId'
+    | '/trends/changes/$changeId'
+  fileRoutesByTo: FileRoutesByTo
+  to:
+    | '/'
+    | '/ask-claude'
+    | '/day'
+    | '/import'
+    | '/log'
+    | '/more'
+    | '/patterns'
+    | '/people'
+    | '/progress'
+    | '/trends'
+    | '/more/look'
+    | '/more/sharing'
+    | '/more/system'
+    | '/patterns/$patternId'
+    | '/log/activity/$activityId'
+    | '/trends/changes/$changeId'
+  id:
+    | '__root__'
+    | '/'
+    | '/ask-claude'
+    | '/day'
+    | '/import'
+    | '/log'
+    | '/more'
+    | '/patterns'
+    | '/people'
+    | '/progress'
+    | '/trends'
+    | '/more_/look'
+    | '/more_/sharing'
+    | '/more_/system'
+    | '/patterns_/$patternId'
+    | '/log_/activity/$activityId'
+    | '/trends_/changes/$changeId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AskClaudeRoute: typeof AskClaudeRoute
   DayRoute: typeof DayRoute
   ImportRoute: typeof ImportRoute
+  LogRoute: typeof LogRoute
   MoreRoute: typeof MoreRoute
   PatternsRoute: typeof PatternsRoute
   PeopleRoute: typeof PeopleRoute
+  ProgressRoute: typeof ProgressRoute
   TrendsRoute: typeof TrendsRoute
+  MoreLookRoute: typeof MoreLookRoute
+  MoreSharingRoute: typeof MoreSharingRoute
+  MoreSystemRoute: typeof MoreSystemRoute
+  PatternsPatternIdRoute: typeof PatternsPatternIdRoute
+  LogActivityActivityIdRoute: typeof LogActivityActivityIdRoute
+  TrendsChangesChangeIdRoute: typeof TrendsChangesChangeIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -115,6 +245,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ask-claude': {
+      id: '/ask-claude'
+      path: '/ask-claude'
+      fullPath: '/ask-claude'
+      preLoaderRoute: typeof AskClaudeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/day': {
@@ -129,6 +266,13 @@ declare module '@tanstack/react-router' {
       path: '/import'
       fullPath: '/import'
       preLoaderRoute: typeof ImportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/log': {
+      id: '/log'
+      path: '/log'
+      fullPath: '/log'
+      preLoaderRoute: typeof LogRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/more': {
@@ -152,6 +296,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PeopleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/progress': {
+      id: '/progress'
+      path: '/progress'
+      fullPath: '/progress'
+      preLoaderRoute: typeof ProgressRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/trends': {
       id: '/trends'
       path: '/trends'
@@ -159,17 +310,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TrendsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/more_/look': {
+      id: '/more_/look'
+      path: '/more/look'
+      fullPath: '/more/look'
+      preLoaderRoute: typeof MoreLookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/more_/sharing': {
+      id: '/more_/sharing'
+      path: '/more/sharing'
+      fullPath: '/more/sharing'
+      preLoaderRoute: typeof MoreSharingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/more_/system': {
+      id: '/more_/system'
+      path: '/more/system'
+      fullPath: '/more/system'
+      preLoaderRoute: typeof MoreSystemRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patterns_/$patternId': {
+      id: '/patterns_/$patternId'
+      path: '/patterns/$patternId'
+      fullPath: '/patterns/$patternId'
+      preLoaderRoute: typeof PatternsPatternIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/log_/activity/$activityId': {
+      id: '/log_/activity/$activityId'
+      path: '/log/activity/$activityId'
+      fullPath: '/log/activity/$activityId'
+      preLoaderRoute: typeof LogActivityActivityIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/trends_/changes/$changeId': {
+      id: '/trends_/changes/$changeId'
+      path: '/trends/changes/$changeId'
+      fullPath: '/trends/changes/$changeId'
+      preLoaderRoute: typeof TrendsChangesChangeIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AskClaudeRoute: AskClaudeRoute,
   DayRoute: DayRoute,
   ImportRoute: ImportRoute,
+  LogRoute: LogRoute,
   MoreRoute: MoreRoute,
   PatternsRoute: PatternsRoute,
   PeopleRoute: PeopleRoute,
+  ProgressRoute: ProgressRoute,
   TrendsRoute: TrendsRoute,
+  MoreLookRoute: MoreLookRoute,
+  MoreSharingRoute: MoreSharingRoute,
+  MoreSystemRoute: MoreSystemRoute,
+  PatternsPatternIdRoute: PatternsPatternIdRoute,
+  LogActivityActivityIdRoute: LogActivityActivityIdRoute,
+  TrendsChangesChangeIdRoute: TrendsChangesChangeIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

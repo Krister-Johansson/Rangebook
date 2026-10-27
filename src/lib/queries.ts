@@ -12,7 +12,10 @@ import {
   getSystemCheck,
 } from '#/server/analysis'
 import { getDataOverview, listImports } from '#/server/imports'
+import { getChangeComparison, getSettingsTimeline } from '#/server/changes'
+import { getActivityComparison, listLifeLog } from '#/server/life-log'
 import { getPeople } from '#/server/people'
+import { getProgress } from '#/server/progress'
 import { getPrefs } from '#/server/preferences'
 
 // Data only changes on import, so analysis results stay fresh until the import
@@ -91,3 +94,38 @@ export const prefsQuery = queryOptions({
   queryKey: ['prefs'],
   queryFn: () => getPrefs(),
 })
+
+// v2. Progress also changes when a question is saved or a challenge picked;
+// life log edits change patterns and comparisons. Mutations invalidate
+// ['glucose'] (and ['lifelog']) for those cases.
+
+export const progressQuery = queryOptions({
+  queryKey: ['glucose', 'progress'],
+  queryFn: () => getProgress(),
+  staleTime,
+})
+
+export const lifeLogQuery = queryOptions({
+  queryKey: ['lifelog'],
+  queryFn: () => listLifeLog(),
+})
+
+export const settingsTimelineQuery = queryOptions({
+  queryKey: ['glucose', 'changes'],
+  queryFn: () => getSettingsTimeline(),
+  staleTime,
+})
+
+export const changeComparisonQuery = (id: string, days: 7 | 14 | 21) =>
+  queryOptions({
+    queryKey: ['glucose', 'compare', id, days],
+    queryFn: () => getChangeComparison({ data: { id, days } }),
+    staleTime,
+  })
+
+export const activityComparisonQuery = (id: number, leaveOutNotNormal: boolean) =>
+  queryOptions({
+    queryKey: ['glucose', 'activity', id, leaveOutNotNormal],
+    queryFn: () => getActivityComparison({ data: { id, leaveOutNotNormal } }),
+    staleTime,
+  })

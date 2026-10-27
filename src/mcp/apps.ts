@@ -12,7 +12,7 @@ import {
   registerAppTool,
 } from '@modelcontextprotocol/ext-apps/server'
 import type { McpServer } from '@modelcontextprotocol/server'
-import { asc, eq } from 'drizzle-orm'
+import { and, asc, eq, isNull } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '#/db'
@@ -110,7 +110,7 @@ export function registerAppViews(server: McpServer) {
       const saved = await db
         .select({ id: savedQuestions.patternId })
         .from(savedQuestions)
-        .where(eq(savedQuestions.personId, p.id))
+        .where(and(eq(savedQuestions.personId, p.id), isNull(savedQuestions.removedAt)))
         .orderBy(asc(savedQuestions.createdAt))
       const forModel = { ...data, patterns: data.patterns.map(({ chart: _c, ...p }) => p) }
       return view(JSON.stringify(forModel), {

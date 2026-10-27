@@ -69,7 +69,7 @@ export function SystemCheckCard({
       action={
         compact ? (
           <Button variant="ghost" size="sm" asChild>
-            <Link to="/more" hash="system">
+            <Link to="/more/system">
               All
               <ChevronRight />
             </Link>

@@ -1,5 +1,5 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
+import { Link, getRouteApi } from '@tanstack/react-router'
 import { ArrowDown, ArrowUp } from 'lucide-react'
 import { useState } from 'react'
 
@@ -18,11 +18,12 @@ import { Switch } from '#/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import type { DayType } from '#/lib/glucose/analysis'
 import { shortDate } from '#/lib/glucose/format'
-import { profileQuery } from '#/lib/queries'
+import { lifeLogQuery, profileQuery } from '#/lib/queries'
 
 import { AgpChart } from './agp-chart'
 import { findClusters, profileCaption } from './clusters'
 import { Legend, LegendItem } from './legend'
+import { activityLine, typicalActivityBands, weeklyActivities } from './log-bands'
 
 const routeApi = getRouteApi('/trends')
 
@@ -36,11 +37,17 @@ export function TypicalDayCard() {
   const { dayType } = routeApi.useSearch()
   const navigate = routeApi.useNavigate()
   const { data } = useSuspenseQuery(profileQuery(dayType))
+  const { data: log } = useSuspenseQuery(lifeLogQuery)
   const [showOuter, setShowOuter] = useState(true)
+  const [showActs, setShowActs] = useState(true)
 
   const hours = data?.hours ?? []
   const hasData = hours.some((h) => h.n > 0)
   const clusters = hasData ? findClusters(hours) : []
+  const acts = weeklyActivities(log, data?.from, data?.to).filter((e) =>
+    dayType === 'all' ? true : e.weekdays!.some((d) => (dayType === 'weekend' ? d >= 5 : d < 5)),
+  )
+  const actBands = showActs ? typicalActivityBands(log, dayType, data?.from, data?.to) : []
 
   return (
     <Card>
@@ -85,7 +92,7 @@ export function TypicalDayCard() {
               </ul>
             ) : null}
 
-            <AgpChart hours={hours} clusters={clusters} showOuter={showOuter} />
+            <AgpChart hours={hours} clusters={clusters} showOuter={showOuter} logBands={actBands} />
 
             <p className="text-sm">{profileCaption(hours, dayType)}</p>
 
@@ -114,6 +121,16 @@ export function TypicalDayCard() {
                   Highs: 55% or more above 10.0
                 </LegendItem>
               ) : null}
+              {actBands.length
+                ? acts.map((e) => (
+                    <LegendItem
+                      key={e.id}
+                      swatch={{ background: 'var(--act-wash)', boxShadow: 'inset 0 0 0 1.5px var(--act)' }}
+                    >
+                      {activityLine(e)}
+                    </LegendItem>
+                  ))
+                : null}
             </Legend>
           </>
         ) : (
@@ -129,6 +146,25 @@ export function TypicalDayCard() {
             <Label htmlFor="agp-outer">Show most readings (5 to 95%)</Label>
             <p className="text-xs text-muted-foreground">
               The wider band shows how far readings spread on unusual days.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-start gap-3">
+          <Switch id="agp-acts" checked={showActs} onCheckedChange={setShowActs} className="mt-0.5" />
+          <div className="grid gap-1">
+            <Label htmlFor="agp-acts">Show activities from your log</Label>
+            <p className="text-xs text-muted-foreground">
+              {acts.length ? (
+                'Shades the hours of activities that repeat every week.'
+              ) : (
+                <>
+                  No weekly activities in your log for these days yet. Add one in{' '}
+                  <Link to="/log" className="underline underline-offset-2">
+                    Life log
+                  </Link>
+                  .
+                </>
+              )}
             </p>
           </div>
         </div>

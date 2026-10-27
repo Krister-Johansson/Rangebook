@@ -16,6 +16,7 @@ import { f1 } from '#/lib/glucose/format'
 
 import type { Cluster } from './clusters'
 import { hourLabel } from './clusters'
+import type { LogBand } from './log-bands'
 
 const config = {
   p50: { label: 'Median', color: 'var(--foreground)' },
@@ -61,10 +62,12 @@ export function AgpChart({
   hours,
   clusters,
   showOuter,
+  logBands = [],
 }: {
   hours: HourProfile[]
   clusters: Cluster[]
   showOuter: boolean
+  logBands?: LogBand[]
 }) {
   const rows = toRows(hours)
   const top = Math.max(16, Math.ceil(Math.max(...hours.filter((h) => h.n).map((h) => h.p95), 0) + 1))
@@ -78,6 +81,20 @@ export function AgpChart({
     >
       <ComposedChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
         <ReferenceArea y1={3.9} y2={10} fill="var(--target-wash)" fillOpacity={1} zIndex={10} ifOverflow="hidden" />
+        {logBands.map((b) => (
+          <ReferenceArea
+            key={b.key}
+            x1={b.from}
+            x2={b.to}
+            fill="var(--act-wash)"
+            fillOpacity={1}
+            stroke="var(--act)"
+            strokeOpacity={0.7}
+            strokeDasharray="4 3"
+            zIndex={12}
+            label={(props: { viewBox?: unknown }) => <BandLabel viewBox={props.viewBox} text={b.label} />}
+          />
+        ))}
         {clusters.map((c) => (
           <ReferenceArea
             key={c.label}
@@ -148,6 +165,7 @@ export function AgpChart({
           allowDataOverflow
         />
         <ChartTooltip
+isAnimationActive={false}
           cursor={{ stroke: 'var(--muted-foreground)', strokeWidth: 1 }}
           content={(props) => <AgpTooltip {...props} hours={hours} />}
         />
@@ -170,6 +188,27 @@ function ColumnLabel({ viewBox, text }: { viewBox?: unknown; text: string }) {
       fontWeight={700}
     >
       {text}
+    </text>
+  )
+}
+
+/** Activity name along the bottom of its band, cut to fit. */
+export function BandLabel({ viewBox, text }: { viewBox?: unknown; text: string }) {
+  const box = viewBox as { x?: number; y?: number; width?: number; height?: number } | undefined
+  if (!box || box.x == null || box.y == null || !box.width || !box.height || box.width < 22) return null
+  const room = Math.floor((box.width - 6) / 6.2)
+  const shown = text.length <= room ? text : room >= 4 ? `${text.slice(0, room - 1)}.` : ''
+  if (!shown) return null
+  return (
+    <text
+      x={box.x + box.width / 2}
+      y={box.y + box.height - 6}
+      textAnchor="middle"
+      fill="var(--act)"
+      fontSize={10.5}
+      fontWeight={700}
+    >
+      {shown}
     </text>
   )
 }

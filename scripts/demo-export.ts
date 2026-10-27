@@ -279,9 +279,11 @@ for (let i = 1; i < N; i++) {
   addInsulin(i, rate / 12, effective)
   if (out(i)) basalU[dayOf(i)] += rate / 12
 
-  // Merge equal 5-minute rates into one segment, like the pump does.
+  // The pump writes Control-IQ adjustments as 5-minute rows and merges only
+  // stretches at the profile rate (or a suspend) into longer rows.
   if (out(i)) {
-    if (segment && segment.rate === rate && segment.type === type && hourOf(i) !== 0) segment.steps++
+    const mergeable = type === 'Suspend' || rate === p.basal
+    if (segment && mergeable && segment.rate === rate && segment.type === type && hourOf(i) !== 0) segment.steps++
     else {
       segment = { step: i, type, rate, steps: 1 }
       basalRows.push(segment)

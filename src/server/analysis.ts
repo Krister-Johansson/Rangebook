@@ -10,10 +10,12 @@ import {
   systemCheck,
   weekHeatmap,
 } from '#/lib/glucose/analysis'
+import { withoutDays } from '#/lib/glucose/lifelog'
 import { findPatterns } from '#/lib/glucose/patterns'
 import { inDays } from '#/lib/glucose/core'
 import { loadDataset } from './dataset'
 import { activePersonId } from './active-person'
+import { leaveOutDays } from './not-normal'
 
 const PROFILE_DAYS = 90
 
@@ -62,10 +64,14 @@ export const getHeatmap = createServerFn({ method: 'GET' }).handler(async () => 
   return { from, to, cells: weekHeatmap(inDays(ds.readings, from, to)) }
 })
 
+/** Patterns, leaving out not-normal days when the person has chosen that. */
 export const getPatterns = createServerFn({ method: 'GET' }).handler(async () => {
-  const ds = await activeDataset()
+  const personId = await activePersonId()
+  if (personId === null) return null
+  const ds = await loadDataset(personId)
   if (!ds) return null
-  return findPatterns(ds, PROFILE_DAYS)
+  const leaveOut = await leaveOutDays(personId)
+  return { ...findPatterns(withoutDays(ds, leaveOut), PROFILE_DAYS), leftOutDays: leaveOut.size }
 })
 
 export const getDay = createServerFn({ method: 'GET' })

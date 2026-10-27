@@ -235,6 +235,73 @@ export const savedQuestions = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
+    // Removing a question only hides it, so the XP it gave is never taken back
+    // and saving it again gives nothing new.
+    removedAt: timestamp('removed_at', { withTimezone: true }),
   },
   (t) => [primaryKey({ columns: [t.personId, t.patternId] })],
+)
+
+// Life log: days that were not normal (sick, vacation ...), recurring
+// activities on a weekly schedule, and one-off notes on a day. Dates and
+// times are local wall-clock values like the pump data.
+export const lifeLog = pgTable(
+  'life_log',
+  {
+    id: serial().primaryKey(),
+    personId: personId(),
+    kind: text().$type<'tag' | 'activity' | 'note'>().notNull(),
+    // Tags: sick, vacation, period, break or other.
+    tag: text(),
+    // Activity name, note text or a tag's note.
+    text: text().notNull().default(''),
+    startDate: date('start_date', { mode: 'string' }).notNull(),
+    // Last day of a tag, or of an activity that has stopped. Null means open ended.
+    endDate: date('end_date', { mode: 'string' }),
+    // Activities: weekdays as 0 (Monday) to 6 (Sunday), like weekdayOf in
+    // src/lib/glucose/core.ts, and the time of day in minutes.
+    weekdays: integer().array(),
+    startMin: integer('start_min'),
+    endMin: integer('end_min'),
+    // Notes: time of day in minutes.
+    atMin: integer('at_min'),
+    author: text().$type<'you' | 'parent'>().notNull().default('you'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [index('life_log_person_idx').on(t.personId, t.kind)],
+)
+
+// Settings changes logged by hand. Changes found in the export are computed
+// from the data (src/lib/glucose/changes.ts); a hand-logged entry on the same
+// day adds its note to the found change.
+export const settingsNotes = pgTable(
+  'settings_notes',
+  {
+    id: serial().primaryKey(),
+    personId: personId(),
+    day: date({ mode: 'string' }).notNull(),
+    atMin: integer('at_min'),
+    note: text().notNull(),
+    author: text().$type<'you' | 'parent'>().notNull().default('parent'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [index('settings_notes_person_idx').on(t.personId, t.day)],
+)
+
+// The weekly challenge picked for each calendar week (weekStart is a Monday).
+export const challengePicks = pgTable(
+  'challenge_picks',
+  {
+    personId: personId(),
+    weekStart: date('week_start', { mode: 'string' }).notNull(),
+    challengeId: text('challenge_id').notNull(),
+    pickedAt: timestamp('picked_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.personId, t.weekStart] })],
 )

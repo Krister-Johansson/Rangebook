@@ -19,6 +19,12 @@ import { peopleQuery } from '#/lib/queries'
 import { useSwitchPerson } from '#/lib/use-switch-person'
 import { cn } from '#/lib/utils'
 
+/** First visible character, so a name that starts with an emoji is not cut in half. */
+function firstGrapheme(name: string) {
+  const first = [...new Intl.Segmenter().segment(name.trim())][0]?.segment
+  return first ? first.toUpperCase() : '?'
+}
+
 export function Initial({ name, className }: { name: string; className?: string }) {
   return (
     <span
@@ -28,7 +34,7 @@ export function Initial({ name, className }: { name: string; className?: string 
         className,
       )}
     >
-      {name.trim().charAt(0).toUpperCase() || '?'}
+      {firstGrapheme(name)}
     </span>
   )
 }
@@ -86,7 +92,7 @@ export function PersonSwitcher({ compact = false }: { compact?: boolean }) {
             <DropdownMenuRadioItem key={p.id} value={String(p.id)}>
               <span className="truncate">{p.name}</span>
               {p.imports === 0 ? (
-                <span className="ml-auto text-xs text-muted-foreground">No data</span>
+                <span className="ml-auto shrink-0 text-xs whitespace-nowrap text-muted-foreground">No data</span>
               ) : null}
             </DropdownMenuRadioItem>
           ))}

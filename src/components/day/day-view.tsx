@@ -1,11 +1,13 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
-import { Info, PauseCircle } from 'lucide-react'
+import { Dumbbell, Info, PauseCircle, Plus, StickyNote, Tag } from 'lucide-react'
+import { useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 
 import { BandSwatch } from '#/components/glucose/band'
 import { Alert, AlertDescription, AlertTitle } from '#/components/ui/alert'
 import { Badge } from '#/components/ui/badge'
+import { Button } from '#/components/ui/button'
 import {
   Card,
   CardAction,
@@ -21,8 +23,14 @@ import type { DayDetail } from '#/lib/glucose/analysis'
 import { BANDS } from '#/lib/glucose/core'
 import type { Band } from '#/lib/glucose/core'
 import { f1, longDate, perDay } from '#/lib/glucose/format'
-import { dayQuery, daysQuery } from '#/lib/queries'
+import type { LogEntry } from '#/lib/glucose/lifelog'
+import { dayQuery, daysQuery, lifeLogQuery } from '#/lib/queries'
 import { cn } from '#/lib/utils'
+import { AuthorChip } from '#/components/changes/what-changed'
+import type { LogBand } from '#/components/trends/log-bands'
+import { activitiesOn, dayBands, minuteLabel, notesOn, tagLabel, tagsOn } from '#/components/trends/log-bands'
+
+import { AddNoteSheet } from './add-note-sheet'
 
 import { BasalLane, BolusLane, EventLane, GlucoseChart } from './day-chart'
 import { DayEvents } from './day-events'
@@ -35,8 +43,10 @@ export function DayView() {
   const navigate = routeApi.useNavigate()
   const { data: day } = useSuspenseQuery(dayQuery(date))
   const { data: days } = useSuspenseQuery(daysQuery(14))
+  const { data: log } = useSuspenseQuery(lifeLogQuery)
 
   if (!day) return null
+  const bands = dayBands(log, day.day)
   const s = day.summary
   const hasReadings = day.readings.length > 0
   const latest = day.next === null
@@ -93,11 +103,11 @@ export function DayView() {
           ) : null}
 
           <div className="grid min-w-0 gap-1">
-            <GlucoseChart day={day} />
+            <GlucoseChart day={day} logBands={bands} />
             {insulin ? <Lanes day={day} /> : null}
           </div>
 
-          <DayLegend day={day} insulin={insulin} />
+          <DayLegend day={day} insulin={insulin} bands={bands} />
 
           <Separator />
           <div className="flex items-start gap-3">
@@ -116,7 +126,73 @@ export function DayView() {
           {insulin ? <DayEvents day={day} /> : null}
         </CardContent>
       </Card>
+
+      <DayNotes day={day.day} log={log} />
     </div>
+  )
+}
+
+function DayNotes({ day, log }: { day: string; log: LogEntry[] }) {
+  const [adding, setAdding] = useState(false)
+  const tags = tagsOn(log, day)
+  const acts = activitiesOn(log, day)
+  const notes = notesOn(log, day)
+  const empty = !tags.length && !acts.length && !notes.length
+
+  return (
+    <Card className="min-w-0">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <StickyNote className="size-4" aria-hidden="true" />
+          Notes for this day
+        </CardTitle>
+        <CardDescription>From your life log.</CardDescription>
+        <CardAction>
+          <Button variant="outline" size="sm" onClick={() => setAdding(true)}>
+            <Plus aria-hidden="true" />
+            Add note
+          </Button>
+        </CardAction>
+      </CardHeader>
+      <CardContent>
+        {empty ? (
+          <p className="text-sm text-muted-foreground">
+            Nothing logged. A note helps explain a day that looks different, like a sports day or a late party.
+          </p>
+        ) : (
+          <ul className="grid gap-2 text-sm">
+            {tags.map((t) => (
+              <li key={`t-${t.id}`} className="flex flex-wrap items-center gap-2 rounded-md border border-warn-line bg-warn-bg px-2.5 py-1.5 text-warn-ink">
+                <Tag className="size-3.5 shrink-0" aria-hidden="true" />
+                <span className="min-w-0 flex-1">
+                  <span className="font-semibold">Not a normal day:</span> {tagLabel(t)}
+                </span>
+                <AuthorChip author={t.author} />
+              </li>
+            ))}
+            {acts.map((a) => (
+              <li key={`a-${a.id}`} className="flex flex-wrap items-center gap-2 px-1 py-1">
+                <Dumbbell className="size-3.5 shrink-0 text-act" aria-hidden="true" />
+                <span className="w-24 shrink-0 tabular-nums text-muted-foreground">
+                  {minuteLabel(a.startMin ?? 0)} to {minuteLabel(a.endMin ?? 0)}
+                </span>
+                <span className="min-w-0 flex-1">{a.text}, every week</span>
+              </li>
+            ))}
+            {notes.map((n) => (
+              <li key={`n-${n.id}`} className="flex flex-wrap items-start gap-2 border-t px-1 pt-2">
+                <span className="w-12 shrink-0 tabular-nums text-muted-foreground">
+                  {n.atMin === null ? 'Day' : minuteLabel(n.atMin)}
+                </span>
+                <span className="min-w-0 flex-1">{n.text}</span>
+                <AuthorChip author={n.author} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+      <AddNoteSheet day={day} open={adding} onOpenChange={setAdding} />
+    </Card>
   )
 }
 
@@ -158,7 +234,7 @@ function Swatch({ style, className }: { style?: CSSProperties; className?: strin
   return <span aria-hidden="true" className={cn('inline-block size-3 shrink-0 rounded-[3px]', className)} style={style} />
 }
 
-function DayLegend({ day, insulin }: { day: DayDetail; insulin: boolean }) {
+function DayLegend({ day, insulin, bands }: { day: DayDetail; insulin: boolean; bands: LogBand[] }) {
   const hasStop = day.basal.some((b) => b.suspend && b.end - b.t >= 5 / 60)
   const hasHi = day.readings.some((r) => r.limit === 'high')
   const hasLo = day.readings.some((r) => r.limit === 'low')
@@ -202,6 +278,26 @@ function DayLegend({ day, insulin }: { day: DayDetail; insulin: boolean }) {
             }}
           />
           Pump stopped
+        </li>
+      ) : null}
+      {bands.some((b) => b.kind === 'tag') ? (
+        <li className="inline-flex items-center gap-1.5">
+          <Swatch style={{ background: 'var(--warn-bg)', boxShadow: 'inset 0 0 0 1px var(--warn-line)' }} />
+          Not a normal day (life log)
+        </li>
+      ) : null}
+      {bands
+        .filter((b) => b.kind === 'act')
+        .map((b) => (
+          <li key={b.key} className="inline-flex items-center gap-1.5">
+            <Swatch style={{ background: 'var(--act-wash)', boxShadow: 'inset 0 0 0 1.5px var(--act)' }} />
+            {b.label}
+          </li>
+        ))}
+      {bands.some((b) => b.kind === 'note') ? (
+        <li className="inline-flex items-center gap-1.5">
+          <span aria-hidden="true" className="inline-block h-3 w-0 shrink-0 border-l-2 border-dashed border-foreground" />
+          Note
         </li>
       ) : null}
       {insulin ? (

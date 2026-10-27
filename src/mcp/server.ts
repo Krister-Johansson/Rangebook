@@ -4,7 +4,7 @@
 
 import { McpServer } from '@modelcontextprotocol/server'
 import { StdioServerTransport } from '@modelcontextprotocol/server/stdio'
-import { asc, eq } from 'drizzle-orm'
+import { and, asc, eq, isNull } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '#/db'
@@ -262,7 +262,7 @@ export function createServer() {
         await db
           .select({ pattern_id: savedQuestions.patternId, question: savedQuestions.question, created_at: savedQuestions.createdAt })
           .from(savedQuestions)
-          .where(eq(savedQuestions.personId, p.id))
+          .where(and(eq(savedQuestions.personId, p.id), isNull(savedQuestions.removedAt)))
           .orderBy(asc(savedQuestions.createdAt)),
       )
     },
@@ -284,7 +284,8 @@ export function createServer() {
     async ({ person, question, pattern_id }) => {
       const p = await resolvePerson(person)
       const patternId = pattern_id ?? `chat-${Date.now()}`
-      await db.insert(savedQuestions).values({ personId: p.id, patternId, question }).onConflictDoNothing()
+      await db.insert(savedQuestions).values({ personId: p.id, patternId, question })
+        .onConflictDoUpdate({ target: [savedQuestions.personId, savedQuestions.patternId], set: { removedAt: null, question } })
       return json({ saved: true, person: p.name, pattern_id: patternId })
     },
   )

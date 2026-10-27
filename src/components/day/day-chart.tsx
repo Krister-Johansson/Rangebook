@@ -17,6 +17,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '#/components/ui/tooltip
 import type { DayDetail } from '#/lib/glucose/analysis'
 import { BANDS, bandOf } from '#/lib/glucose/core'
 import { clock, f1, hm } from '#/lib/glucose/format'
+import { BandLabel } from '#/components/trends/agp-chart'
+import type { LogBand } from '#/components/trends/log-bands'
 
 // Every lane uses the same margins and y axis width so the hours line up.
 const MARGIN = { top: 14, right: 8, bottom: 0, left: 0 }
@@ -147,6 +149,20 @@ function FitLabel({
   )
 }
 
+/** A small flag at the top of a note line. */
+function NoteMark({ viewBox }: { viewBox?: unknown }) {
+  const box = viewBox as { x?: number; y?: number } | undefined
+  if (!box || box.x == null || box.y == null) return null
+  return (
+    <g>
+      <rect x={box.x - 0.5} y={box.y - 12} width={22} height={12} rx={2} fill="var(--foreground)" />
+      <text x={box.x + 10.5} y={box.y - 3} textAnchor="middle" fill="var(--background)" fontSize={8.5} fontWeight={700}>
+        Note
+      </text>
+    </g>
+  )
+}
+
 function TipBox({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="grid min-w-36 gap-1 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
@@ -156,7 +172,7 @@ function TipBox({ title, children }: { title: string; children: ReactNode }) {
   )
 }
 
-export function GlucoseChart({ day }: { day: DayDetail }) {
+export function GlucoseChart({ day, logBands = [] }: { day: DayDetail; logBands?: LogBand[] }) {
   const uid = useId().replace(/:/g, '')
   const points = toPoints(day.readings)
   const values = day.readings.map((r) => r.v)
@@ -183,7 +199,49 @@ export function GlucoseChart({ day }: { day: DayDetail }) {
             <line x1="0" y1="0" x2="0" y2="6" stroke="var(--muted-foreground)" strokeOpacity={0.5} strokeWidth={1.5} />
           </pattern>
         </defs>
+        {logBands
+          .filter((b) => b.kind === 'tag')
+          .map((b) => (
+            <ReferenceArea
+              key={b.key}
+              x1={0}
+              x2={24}
+              fill="var(--warn-bg)"
+              fillOpacity={0.7}
+              zIndex={5}
+              label={{ value: b.label, position: 'insideTopLeft', fill: 'var(--warn-ink)', fontSize: 10.5, fontWeight: 700, offset: 4 }}
+            />
+          ))}
         <ReferenceArea y1={3.9} y2={10} fill="var(--target-wash)" fillOpacity={1} zIndex={10} />
+        {logBands
+          .filter((b) => b.kind === 'act')
+          .map((b) => (
+            <ReferenceArea
+              key={b.key}
+              x1={b.from}
+              x2={b.to}
+              fill="var(--act-wash)"
+              fillOpacity={1}
+              stroke="var(--act)"
+              strokeOpacity={0.7}
+              strokeDasharray="4 3"
+              zIndex={12}
+              label={(p: { viewBox?: unknown }) => <BandLabel viewBox={p.viewBox} text={b.label} />}
+            />
+          ))}
+        {logBands
+          .filter((b) => b.kind === 'note')
+          .map((b) => (
+            <ReferenceLine
+              key={b.key}
+              x={b.from}
+              stroke="var(--foreground)"
+              strokeOpacity={0.7}
+              strokeDasharray="2 3"
+              zIndex={40}
+              label={(p: { viewBox?: unknown }) => <NoteMark viewBox={p.viewBox} />}
+            />
+          ))}
         {day.gaps.map((g) => (
           <ReferenceArea
             key={`gap-${g.from}`}
@@ -268,6 +326,7 @@ export function GlucoseChart({ day }: { day: DayDetail }) {
         />
         {noData ? null : (
           <ChartTooltip
+isAnimationActive={false}
             cursor={{ stroke: 'var(--muted-foreground)', strokeWidth: 1 }}
             content={(p) => <GlucoseTip {...p} stops={stops} />}
           />
@@ -368,6 +427,7 @@ export function BolusLane({ boluses }: { boluses: Bolus[] }) {
         <XAxis {...xAxisProps} hide />
         <YAxis type="number" domain={[0, top]} ticks={[top]} width={Y_WIDTH} tickLine={false} axisLine={false} tickFormatter={(v: number) => `${v} U`} />
         <ChartTooltip
+isAnimationActive={false}
           cursor={{ stroke: 'var(--muted-foreground)', strokeWidth: 1 }}
           content={(p) => {
             const b = p.payload?.[0]?.payload as Bolus | undefined
@@ -464,6 +524,7 @@ export function BasalLane({ basal }: { basal: Basal[] }) {
           tickFormatter={(v: number) => String(v)}
         />
         <ChartTooltip
+isAnimationActive={false}
           cursor={{ stroke: 'var(--muted-foreground)', strokeWidth: 1 }}
           content={(p) => {
             const b = p.payload?.[0]?.payload as BasalPoint | undefined

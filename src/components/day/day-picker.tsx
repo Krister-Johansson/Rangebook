@@ -48,7 +48,7 @@ export function DayPicker({
                   aria-current={selected ? 'date' : undefined}
                   aria-label={`${longDate(d.day)}, ${hasData ? `${Math.round(d.inRange)}% in range` : 'no sensor readings'}`}
                   className={cn(
-                    'flex min-h-14 w-12 flex-col items-center justify-center gap-0.5 rounded-lg border bg-background px-0.5 py-1.5 no-underline outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50',
+                    'flex min-h-14 w-12 flex-col items-center justify-center gap-0.5 rounded-lg border bg-background px-0.5 py-1.5 no-underline outline-none transition-colors duration-(--dur-press) hover:bg-accent active:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50',
                     selected && 'border-primary bg-primary text-primary-foreground hover:bg-primary',
                   )}
                 >
